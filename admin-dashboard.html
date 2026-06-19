@@ -1,0 +1,2105 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="day">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Admin Dashboard — TrafficSense</title>
+  <meta name="description" content="TrafficSense Admin Command Dashboard — Bengaluru Police smart traffic management."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <style>
+    /* ── TOKENS ─────────────────────────────── */
+    :root{--bg:#F0F2F5;--surface:#FFFFFF;--primary:#1A3C6E;--pri-rgb:26,60,110;--red:#E63946;--red-rgb:230,57,70;--text:#0D1B2A;--muted:#5C6D7E;--border:#D8DEE6;--sb:#FFFFFF;--tb:rgba(255,255,255,.96);--shadow:0 2px 8px rgba(0,0,0,.07);--green:#2A7D4F;--amber:#B45309;--amber-rgb:180,83,9;}
+    [data-theme="night"]{--bg:#0B0F1A;--surface:#131929;--primary:#4A90E2;--pri-rgb:74,144,226;--red:#FF4D5A;--red-rgb:255,77,90;--text:#E8EDF5;--muted:#6B7A90;--border:#1E2A3E;--sb:#0F1623;--tb:rgba(15,22,35,.97);--shadow:0 2px 8px rgba(0,0,0,.35);--green:#3DB870;--amber:#D97706;--amber-rgb:217,119,6;}
+
+    /* ── RESET ──────────────────────────────── */
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    html{font-size:15px;}
+    body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;transition:background .3s,color .3s;}
+    a{text-decoration:none;color:inherit;}
+    button{font-family:inherit;cursor:pointer;border:none;background:none;}
+    input,select,textarea{font-family:inherit;}
+
+    /* ── SHELL ──────────────────────────────── */
+    #shell{display:flex;min-height:100vh;}
+
+    /* ── SIDEBAR ────────────────────────────── */
+    #sidebar{width:220px;flex-shrink:0;background:var(--sb);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:200;transition:background .3s,border-color .3s;}
+    .sb-logo{display:flex;align-items:center;gap:.4rem;padding:1.3rem 1.4rem 1.1rem;border-bottom:1px solid var(--border);}
+    .sb-sym{color:var(--red);font-size:1rem;font-weight:700;}
+    .sb-name{font-family:'Sora',sans-serif;font-weight:700;font-size:.92rem;color:var(--primary);letter-spacing:-.01em;}
+    .sb-nav{flex:1;padding:.8rem 0;overflow-y:auto;}
+    .sb-lbl{font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:600;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;padding:.7rem 1.4rem .35rem;}
+    .sb-item{display:block;width:100%;padding:.62rem 1.4rem;font-size:.875rem;font-weight:500;color:var(--muted);border-left:2px solid transparent;text-align:left;cursor:pointer;position:relative;transition:color .2s,background .2s,border-color .2s;}
+    .sb-item:hover{color:var(--text);background:rgba(var(--pri-rgb),.05);}
+    .sb-item.active{color:var(--primary);font-weight:600;border-left-color:var(--primary);background:rgba(var(--pri-rgb),.06);}
+    .sb-item.add-btn{color:var(--green);}
+    .sb-item.add-btn:hover{background:rgba(42,125,79,.06);}
+    .sb-item.add-btn.active{border-left-color:var(--green);background:rgba(42,125,79,.08);}
+    .sb-badge{position:absolute;right:1rem;top:50%;transform:translateY(-50%);background:var(--red);color:#fff;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;border-radius:99px;padding:.1rem .45rem;min-width:20px;text-align:center;}
+    .sb-badge.g{background:var(--green);}
+    .sb-div{height:1px;background:var(--border);margin:.6rem 1.2rem;}
+    .sb-foot{padding:1rem 1.4rem 1.2rem;border-top:1px solid var(--border);}
+    .sb-email{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);margin-bottom:.35rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .sb-role{display:inline-block;font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--red);border:1px solid var(--red);border-radius:3px;padding:.1rem .45rem;}
+
+    /* ── MAIN ───────────────────────────────── */
+    #main{margin-left:220px;flex:1;display:flex;flex-direction:column;min-height:100vh;}
+
+    /* ── TOPBAR ─────────────────────────────── */
+    #topbar{position:sticky;top:0;z-index:100;height:60px;background:var(--tb);border-bottom:1px solid var(--border);backdrop-filter:blur(12px);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;transition:background .3s,border-color .3s;}
+    #page-title{font-family:'Sora',sans-serif;font-size:1.2rem;font-weight:700;color:var(--text);letter-spacing:-.01em;}
+    .tb-right{display:flex;align-items:center;gap:1rem;}
+    .live-dot-wrap{display:flex;align-items:center;gap:.4rem;font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;letter-spacing:.08em;color:var(--red);}
+    .live-dot{width:7px;height:7px;border-radius:50%;background:var(--red);box-shadow:0 0 5px var(--red);animation:pulse 1.6s infinite;}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+    #live-clock{font-family:'JetBrains Mono',monospace;font-size:.82rem;color:var(--muted);letter-spacing:.04em;}
+    #theme-btn{display:flex;align-items:center;gap:.4rem;background:var(--surface);border:1.5px solid var(--border);border-radius:999px;padding:.28rem .8rem;font-size:.75rem;font-weight:500;color:var(--muted);transition:all .3s;}
+    #theme-btn:hover{border-color:var(--primary);color:var(--primary);}
+    .ti{position:relative;width:15px;height:15px;}
+    .ti svg{position:absolute;width:15px;height:15px;stroke:currentColor;transition:opacity .3s,transform .3s;}
+    [data-theme="day"] .moon{opacity:0;transform:rotate(90deg) scale(.6);}
+    [data-theme="day"] .sun{opacity:1;}
+    [data-theme="night"] .sun{opacity:0;transform:rotate(-90deg) scale(.6);}
+    [data-theme="night"] .moon{opacity:1;}
+    .td{display:inline;}[data-theme="night"] .td{display:none;}
+    .tn{display:none;}[data-theme="night"] .tn{display:inline;}
+
+    /* ── CONTENT ────────────────────────────── */
+    #content{flex:1;padding:2rem;overflow-y:auto;}
+    .page-section{display:none;}.page-section.active{display:block;}
+
+    /* ── STAT CARDS ─────────────────────────── */
+    .stat-row{display:grid;gap:1rem;margin-bottom:1.8rem;}
+    .c4{grid-template-columns:repeat(4,1fr);}
+    .c3{grid-template-columns:repeat(3,1fr);}
+    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.2rem 1.4rem;display:flex;flex-direction:column;gap:.3rem;box-shadow:var(--shadow);transition:background .3s,border-color .3s;}
+    .sc-label{font-size:.72rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);}
+    .sc-value{font-family:'JetBrains Mono',monospace;font-size:1.85rem;font-weight:700;color:var(--text);line-height:1;letter-spacing:-.02em;}
+    .sc-value.r{color:var(--red);}.sc-value.g{color:var(--green);}.sc-value.b{color:var(--primary);}.sc-value.a{color:var(--amber);}
+    .sc-sub{font-size:.75rem;color:var(--muted);margin-top:.1rem;}
+    .sc-bar{height:2px;border-radius:1px;margin-top:.6rem;}
+    .br{background:var(--red);}.bg{background:var(--green);}.bb{background:var(--primary);}.ba{background:var(--amber);}
+
+    /* ── CARD ───────────────────────────────── */
+    .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:1.4rem;box-shadow:var(--shadow);transition:background .3s,border-color .3s;margin-bottom:1.4rem;}
+    .card-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;padding-bottom:.8rem;border-bottom:1px solid var(--border);}
+    .card-title{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:700;color:var(--text);}
+    .card-meta{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem;margin-bottom:1.4rem;}
+
+    /* ── TABLE ──────────────────────────────── */
+    .data-table{width:100%;border-collapse:collapse;}
+    .data-table th{font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);padding:.6rem .8rem;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap;}
+    .data-table td{font-size:.82rem;padding:.65rem .8rem;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+    .data-table tbody tr:last-child td{border-bottom:none;}
+    .data-table tbody tr:hover td{background:rgba(var(--pri-rgb),.03);}
+    .mono{font-family:'JetBrains Mono',monospace;font-size:.75rem;}
+
+    /* ── PILLS ──────────────────────────────── */
+    .pill{display:inline-block;border-radius:99px;padding:.15rem .6rem;font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase;}
+    .ph{background:rgba(var(--red-rgb),.1);color:var(--red);}
+    .pm{background:rgba(var(--amber-rgb),.12);color:var(--amber);}
+    .pl{background:rgba(var(--pri-rgb),.1);color:var(--primary);}
+    .pa{background:rgba(var(--red-rgb),.1);color:var(--red);}
+    .pr{background:rgba(42,125,79,.1);color:var(--green);}
+    .pc{background:rgba(92,109,126,.1);color:var(--muted);}
+    .pY{background:rgba(var(--red-rgb),.12);color:var(--red);}
+    .pN{background:rgba(92,109,126,.1);color:var(--muted);}
+
+    /* ── BAR CHART ──────────────────────────── */
+    .bar-row{display:flex;align-items:center;gap:.8rem;padding:.45rem 0;}
+    .bar-label{width:150px;flex-shrink:0;font-size:.8rem;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .bar-track{flex:1;height:8px;border-radius:4px;background:var(--bg);overflow:hidden;}
+    .bar-fill{height:100%;border-radius:4px;transition:width .6s ease;}
+    .bar-count{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);width:40px;text-align:right;flex-shrink:0;}
+
+    /* ── DONUT ──────────────────────────────── */
+    .donut-wrap{display:flex;align-items:center;gap:1.8rem;}
+    .donut-legend{display:flex;flex-direction:column;gap:.6rem;}
+    .donut-item{display:flex;align-items:center;gap:.55rem;font-size:.8rem;color:var(--text);}
+    .donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+    .donut-val{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);margin-left:auto;padding-left:.8rem;}
+
+    /* ── ALERT FEED ─────────────────────────── */
+    .alert-feed{display:flex;flex-direction:column;gap:.7rem;}
+    .alert-row{display:flex;gap:.9rem;align-items:flex-start;padding:.7rem .9rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;transition:border-color .2s;}
+    .alert-row:hover{border-color:var(--primary);}
+    .alert-bar{width:3px;border-radius:2px;flex-shrink:0;align-self:stretch;min-height:40px;}
+    .alert-body{flex:1;min-width:0;}
+    .alert-title{font-size:.83rem;font-weight:600;color:var(--text);margin-bottom:.2rem;}
+    .alert-meta{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
+    .alert-time{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);flex-shrink:0;}
+
+    /* ── SCORE BAR ──────────────────────────── */
+    .score-wrap{display:flex;align-items:center;gap:.6rem;}
+    .score-track{flex:1;height:6px;border-radius:3px;background:var(--bg);overflow:hidden;min-width:60px;}
+    .score-fill{height:100%;border-radius:3px;transition:width .8s ease;}
+    .score-num{font-family:'JetBrains Mono',monospace;font-size:.75rem;font-weight:700;width:32px;text-align:right;flex-shrink:0;}
+
+    /* ── ADD EVENT FORM ─────────────────────── */
+    .form-sec{margin-bottom:1.8rem;}
+    .form-sec-hdr{display:flex;align-items:center;gap:.8rem;margin-bottom:1rem;padding-bottom:.7rem;border-bottom:1px solid var(--border);}
+    .form-sec-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text);}
+    .form-sec-req{font-family:'JetBrains Mono',monospace;font-size:.65rem;font-weight:700;letter-spacing:.08em;color:var(--red);text-transform:uppercase;}
+    .form-sec-opt{font-family:'JetBrains Mono',monospace;font-size:.65rem;color:var(--muted);}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:.9rem;}
+    .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.9rem;}
+    .field-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:1rem 1.1rem;transition:border-color .25s;}
+    .field-card:focus-within{border-color:var(--primary);}
+    .field-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:.6rem;display:flex;align-items:center;gap:.3rem;}
+    .field-hint{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted);margin-top:.4rem;}
+    .req-star{color:var(--red);}
+    .toggle-grp{display:flex;gap:.4rem;flex-wrap:wrap;}
+    .tog-btn{padding:.4rem 1rem;border-radius:99px;font-size:.8rem;font-weight:600;border:1.5px solid var(--border);color:var(--muted);transition:all .2s;cursor:pointer;}
+    .tog-btn:hover{border-color:var(--primary);color:var(--primary);}
+    .tog-btn.sel-planned{border-color:var(--primary);background:rgba(var(--pri-rgb),.1);color:var(--primary);}
+    .tog-btn.sel-unplanned{border-color:var(--red);background:rgba(var(--red-rgb),.1);color:var(--red);}
+    .tog-btn.sel-yes{border-color:var(--red);background:rgba(var(--red-rgb),.1);color:var(--red);}
+    .tog-btn.sel-no{border-color:var(--green);background:rgba(42,125,79,.1);color:var(--green);}
+    .f-input,.f-select,.f-textarea{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:.6rem .9rem;font-size:.85rem;color:var(--text);outline:none;transition:border-color .25s;}
+    .f-input::placeholder,.f-textarea::placeholder{color:var(--muted);opacity:.7;}
+    .f-input:focus,.f-select:focus,.f-textarea:focus{border-color:var(--primary);}
+    .f-textarea{resize:vertical;min-height:80px;}
+    .coord-pair{display:grid;grid-template-columns:1fr 1fr;gap:.5rem;}
+    .form-submit-bar{display:flex;align-items:center;gap:1rem;padding-top:1rem;border-top:1px solid var(--border);}
+    .btn-primary{background:var(--primary);color:#fff;border-radius:8px;padding:.75rem 2rem;font-size:.9rem;font-weight:700;transition:opacity .2s;cursor:pointer;}
+    .btn-primary:hover{opacity:.88;}
+    .btn-secondary{background:var(--bg);color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:.75rem 1.5rem;font-size:.9rem;font-weight:600;transition:all .2s;cursor:pointer;}
+    .btn-secondary:hover{border-color:var(--primary);color:var(--primary);}
+
+    /* ── AI RESULT ──────────────────────────── */
+    #ai-result{display:none;margin-top:1.8rem;}
+    .ai-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.9rem;margin-bottom:1rem;}
+    .ai-cell{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:.9rem 1rem;}
+    .ai-cell-label{font-family:'JetBrains Mono',monospace;font-size:.6rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.4rem;}
+    .ai-cell-value{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--text);}
+    .ai-action-box{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:1rem 1.2rem;border-left:3px solid var(--primary);margin-bottom:.7rem;}
+    .ai-action-label{font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--primary);margin-bottom:.4rem;}
+    .ai-action-text{font-size:.85rem;color:var(--text);line-height:1.6;}
+    .ai-barricade-box{background:var(--bg);border:1.5px solid var(--border);border-radius:8px;padding:.8rem 1.2rem;border-left:3px solid var(--amber);}
+    .ai-barricade-label{font-family:'JetBrains Mono',monospace;font-size:.62rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--amber);margin-bottom:.3rem;}
+    .ai-barricade-text{font-size:.82rem;color:var(--text);}
+
+    /* ── DEPLOY CARDS ───────────────────────── */
+    .deploy-card{background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:1.2rem 1.4rem;margin-bottom:1rem;border-left:3px solid transparent;transition:all .25s;}
+    .deploy-card.h{border-left-color:var(--red);}
+    .deploy-card.m{border-left-color:var(--amber);}
+    .deploy-card:hover{border-color:var(--primary);}
+    .dc-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem;flex-wrap:wrap;gap:.5rem;}
+    .dc-title{font-family:'Sora',sans-serif;font-size:.92rem;font-weight:700;color:var(--text);}
+    .dc-meta{font-family:'JetBrains Mono',monospace;font-size:.67rem;color:var(--muted);margin-bottom:.8rem;line-height:1.6;}
+    .dc-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:.7rem;margin-bottom:.8rem;}
+    .dc-stat{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;}
+    .dc-stat-label{font-family:'JetBrains Mono',monospace;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-bottom:.2rem;}
+    .dc-stat-val{font-family:'JetBrains Mono',monospace;font-size:1rem;font-weight:700;color:var(--text);}
+    .dc-action{font-size:.82rem;color:var(--text);background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.7rem 1rem;line-height:1.55;margin-bottom:.6rem;}
+    .dc-barricade{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--amber);background:rgba(var(--amber-rgb),.07);border:1px solid rgba(var(--amber-rgb),.2);border-radius:6px;padding:.5rem .9rem;}
+    .dc-btns{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.7rem;}
+    .dc-btn{background:var(--primary);color:#fff;border-radius:6px;padding:.35rem .9rem;font-size:.77rem;font-weight:600;transition:opacity .2s;cursor:pointer;}
+    .dc-btn:hover{opacity:.85;}
+    .dc-btn.res{background:var(--green);}
+    .dc-btn.out{background:transparent;color:var(--primary);border:1px solid var(--primary);}
+
+    /* ── FILTER BAR ─────────────────────────── */
+    .filter-bar{display:flex;align-items:center;gap:.6rem;margin-bottom:1rem;flex-wrap:wrap;}
+    .f-sm{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.45rem .75rem;font-size:.8rem;color:var(--text);outline:none;cursor:pointer;}
+    .f-sm-input{background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:.45rem .8rem;font-size:.8rem;color:var(--text);outline:none;min-width:170px;}
+    .f-sm-input::placeholder{color:var(--muted);}
+    .f-sm:focus,.f-sm-input:focus{border-color:var(--primary);}
+    .f-count{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);margin-left:auto;}
+    .f-btn{background:var(--primary);color:#fff;border-radius:6px;padding:.45rem 1rem;font-size:.78rem;font-weight:600;transition:opacity .2s;cursor:pointer;}
+    .f-btn:hover{opacity:.88;}
+
+    /* ── TABLE BUTTONS ──────────────────────── */
+    .tbl-btn{padding:.25rem .7rem;border-radius:5px;font-size:.72rem;font-weight:600;cursor:pointer;transition:all .2s;border:none;}
+    .tbl-res{background:rgba(42,125,79,.1);color:var(--green);}
+    .tbl-res:hover{background:var(--green);color:#fff;}
+    .tbl-det{background:rgba(var(--pri-rgb),.1);color:var(--primary);}
+    .tbl-det:hover{background:var(--primary);color:#fff;}
+
+    /* ── EMPTY STATE ────────────────────────── */
+    .empty{text-align:center;padding:3.5rem 1rem;color:var(--muted);}
+    .empty strong{display:block;font-family:'Sora',sans-serif;font-size:1rem;color:var(--text);margin-bottom:.4rem;}
+
+    /* ── DOWNLOAD BTN ───────────────────────── */
+    .dl-btn{display:inline-flex;align-items:center;gap:.5rem;background:var(--primary);color:#fff;border-radius:8px;padding:.65rem 1.4rem;font-size:.87rem;font-weight:700;transition:opacity .2s;cursor:pointer;border:none;}
+    .dl-btn:hover{opacity:.88;}
+
+    /* ── TOAST ──────────────────────────────── */
+    #toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--green);color:#fff;padding:.8rem 1.5rem;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.78rem;font-weight:700;z-index:9999;transform:translateY(100px);opacity:0;transition:all .4s cubic-bezier(.22,1,.36,1);}
+    #toast.show{transform:translateY(0);opacity:1;}
+
+    /* ── MAP ────────────────────────────────── */
+    #main-map{border-radius:6px;background:var(--bg);display:block;width:100%;}
+
+    /* ── PROGRESS ───────────────────────────── */
+    .prog-wrap{margin-bottom:.65rem;}
+    .prog-labels{display:flex;justify-content:space-between;margin-bottom:.3rem;}
+    .prog-name{font-size:.8rem;color:var(--text);}
+    .prog-pct{font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);}
+    .prog-track{height:7px;border-radius:4px;background:var(--bg);overflow:hidden;}
+    .prog-fill{height:100%;border-radius:4px;}
+
+    @media(max-width:960px){
+      #sidebar{transform:translateX(-100%);}#main{margin-left:0;}
+      .c4{grid-template-columns:repeat(2,1fr);}
+      .two-col,.grid-2,.grid-3{grid-template-columns:1fr;}
+      .ai-grid,.dc-grid{grid-template-columns:repeat(2,1fr);}
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div id="toast" role="status"></div>
+
+<div id="shell">
+
+<!-- ══ SIDEBAR ══════════════════════════════ -->
+<aside id="sidebar">
+  <div class="sb-logo">
+    <span class="sb-sym">◈</span>
+    <span class="sb-name">TrafficSense</span>
+  </div>
+  <nav class="sb-nav">
+    <div class="sb-lbl">Command</div>
+    <button class="sb-item active" id="nav-overview"   onclick="nav('overview',this)">Overview</button>
+    <button class="sb-item add-btn" id="nav-addevent"  onclick="nav('addevent',this)">+ Add Event</button>
+    <button class="sb-item" id="nav-livemap"           onclick="nav('livemap',this)">Live Map</button>
+    <button class="sb-item" id="nav-events"            onclick="nav('events',this)">Events</button>
+    <button class="sb-item" id="nav-forecast"          onclick="nav('forecast',this)">AI Forecast</button>
+    <div class="sb-lbl" style="margin-top:.5rem">Operations</div>
+    <button class="sb-item" id="nav-deploy"            onclick="nav('deploy',this)">Deploy Plan</button>
+    <button class="sb-item" id="nav-alerts"            onclick="nav('alerts',this)">Alerts</button>
+    <button class="sb-item" id="nav-analytics"         onclick="nav('analytics',this)">Analytics</button>
+    <button class="sb-item" id="nav-reports"           onclick="nav('reports',this)">Submitted Reports</button>
+    <div class="sb-lbl" style="margin-top:.5rem">Admin</div>
+    <button class="sb-item" id="nav-users"             onclick="nav('users',this)">Users</button>
+    <div class="sb-div" style="margin-top:1rem"></div>
+    <button class="sb-item" onclick="window.location.href='index.html'" style="color:var(--red)">Logout</button>
+  </nav>
+  <div class="sb-foot">
+    <div class="sb-email" id="sb-email">admin@trafficsense.in</div>
+    <span class="sb-role">Admin</span>
+  </div>
+</aside>
+
+<!-- ══ MAIN ═════════════════════════════════ -->
+<div id="main">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <div id="page-title">Overview</div>
+    <div class="tb-right">
+      <div class="live-dot-wrap"><span class="live-dot"></span>LIVE</div>
+                  <div id="live-date" style="font-family:'JetBrains Mono',monospace;font-size:0.82rem;color:var(--muted);margin-right:1rem;font-weight:600;">--/--/----</div>
+        <div id="live-clock">--:--:--</div>
+      <button id="theme-btn" onclick="toggleTheme()" aria-label="Toggle theme">
+        <div class="ti" aria-hidden="true">
+          <svg class="sun" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          <svg class="moon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        </div>
+        <span class="td">Day</span><span class="tn">Night</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ PAGES ════════════════════════════════ -->
+  <div id="content">
+
+    <!-- ── OVERVIEW ─────────────────────────── -->
+    <div id="page-overview" class="page-section active">
+      <div class="stat-row c4" id="ov-kpis"></div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Events by Cause</span><span class="card-meta" id="ov-cause-meta">—</span></div>
+          <div id="ov-cause-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Status Distribution</span><span class="card-meta">Live snapshot</span></div>
+          <div id="ov-donut" class="donut-wrap"></div>
+        </div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Top Corridors by Load</span><span class="card-meta" id="ov-corr-meta">—</span></div>
+          <div id="ov-corr-bars"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Live Alert Feed</span><span class="card-meta">High priority · Active</span></div>
+          <div class="alert-feed" id="ov-alerts"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Recent Events</span><span class="card-meta">Last 10 added</span></div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr><th>ID</th><th>Type</th><th>Cause</th><th>Junction</th><th>Corridor</th><th>Zone</th><th>Station</th><th>Priority</th><th>Closure</th><th>Status</th></tr></thead>
+            <tbody id="ov-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── ADD EVENT ─────────────────────────── -->
+    <div id="page-addevent" class="page-section">
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">Add New Traffic Event</span>
+          <span class="card-meta">AI will predict priority, officers &amp; deployment plan</span>
+        </div>
+
+        <form id="add-event-form" onsubmit="submitEvent(event)">
+
+          <!-- SECTION 1 -->
+          <div class="form-sec">
+            <div class="form-sec-hdr">
+              <span class="form-sec-title">Section 1 — Basic Info</span>
+              <span class="form-sec-req">Required</span>
+              <span class="form-sec-opt" style="margin-left:auto">AI model needs these fields</span>
+            </div>
+            <div class="grid-2">
+
+              <div class="field-card">
+                <div class="field-label">Event Type <span class="req-star">*</span></div>
+                <div class="toggle-grp">
+                  <button type="button" class="tog-btn sel-planned" id="btn-planned" onclick="setType('planned')">Planned</button>
+                  <button type="button" class="tog-btn" id="btn-unplanned" onclick="setType('unplanned')">Unplanned</button>
+                </div>
+                <input type="hidden" id="f-type" value="planned"/>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Event Cause <span class="req-star">*</span></div>
+                <select class="f-select" id="f-cause" required onchange="onCauseChange()">
+                  <option value="">— Select Cause —</option>
+                  <option value="vehicle_breakdown">Vehicle Breakdown (4,896 cases)</option>
+                  <option value="accident">Accident (365 cases)</option>
+                  <option value="water_logging">Water Logging (458 cases)</option>
+                  <option value="tree_fall">Tree Fall (284 cases)</option>
+                  <option value="pot_holes">Pot Holes (537 cases)</option>
+                  <option value="construction">Construction (480 cases)</option>
+                  <option value="public_event">Public Event (84 cases)</option>
+                  <option value="congestion">Congestion (136 cases)</option>
+                  <option value="vip_movement">VIP Movement (20 cases)</option>
+                  <option value="procession">Procession (72 cases)</option>
+                  <option value="protest">Protest (15 cases)</option>
+                  <option value="road_conditions">Road Conditions (170 cases)</option>
+                  <option value="others">Others (638 cases)</option>
+                </select>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Corridor <span class="req-star">*</span></div>
+                <select class="f-select" id="f-corridor" required onchange="onCorridorChange()">
+                  <option value="">— Select Corridor —</option>
+                  <option>Tumkur Road</option><option>Mysore Road</option>
+                  <option>Bellary Road 1</option><option>Bellary Road 2</option>
+                  <option>Hosur Road</option><option>ORR East 1</option>
+                  <option>ORR East 2</option><option>ORR North 1</option>
+                  <option>ORR North 2</option><option>ORR South</option>
+                  <option>Old Madras Road</option><option>Magadi Road</option>
+                  <option>Bannerghatta Road</option><option>NH 44</option>
+                  <option>Kanakapura Road</option><option>Hennuru Road</option>
+                  <option>Sarjapur Road</option><option>NICE Road</option>
+                  <option>Non-corridor</option>
+                </select>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Zone <span class="req-star">*</span></div>
+                <select class="f-select" id="f-zone" required>
+                  <option value="">— Auto-filled from Corridor —</option>
+                  <option>Central Zone 1</option><option>Central Zone 2</option>
+                  <option>North Zone 1</option><option>North Zone 2</option>
+                  <option>South Zone 1</option><option>South Zone 2</option>
+                  <option>West Zone 1</option><option>West Zone 2</option>
+                  <option>East Zone 1</option><option>East Zone 2</option>
+                </select>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Road Closure Required? <span class="req-star">*</span></div>
+                <div class="toggle-grp">
+                  <button type="button" class="tog-btn" id="btn-no"  onclick="setClosure('no')">No</button>
+                  <button type="button" class="tog-btn" id="btn-yes" onclick="setClosure('yes')">Yes</button>
+                </div>
+                <input type="hidden" id="f-closure" value=""/>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Date &amp; Time <span class="req-star">*</span></div>
+                <input class="f-input" type="datetime-local" id="f-datetime" required/>
+                
+              </div>
+
+            </div>
+          </div>
+
+          <!-- SECTION 2 -->
+          <div class="form-sec">
+            <div class="form-sec-hdr">
+              <span class="form-sec-title">Section 2 — Location Info</span>
+              <span class="form-sec-req">Required</span>
+            </div>
+            <div class="grid-3">
+
+              <div class="field-card">
+                <div class="field-label">Address / Junction <span class="req-star">*</span></div>
+                <input class="f-input" type="text" id="f-junction" placeholder="e.g. Silk Board Junction" required/>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Police Station <span class="req-star">*</span></div>
+                <select class="f-select" id="f-station" required>
+                  <option value="">— Select Station —</option>
+                  <option>Yelahanka</option><option>HAL Old Airport</option>
+                  <option>Sadashivanagar</option><option>Byatarayanapura</option>
+                  <option>Halasuru Gate</option><option>Yeshwanthpura</option>
+                  <option>Hennuru</option><option>Kodigehalli</option>
+                  <option>Banaswadi</option><option>K.R. Pura</option>
+                  <option>Kamakshipalya</option><option>Peenya</option>
+                  <option>Madivala</option><option>Wilson Garden</option>
+                  <option>HSR Layout</option><option>Whitefield</option>
+                  <option>Marathahalli</option><option>Cubbon Park</option>
+                </select>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Coordinates (optional)</div>
+                <div class="coord-pair">
+                  <input class="f-input" type="text" id="f-lat" placeholder="Lat (13.04...)"/>
+                  <input class="f-input" type="text" id="f-lng" placeholder="Lng (77.52...)"/>
+                </div>
+                
+              </div>
+
+            </div>
+          </div>
+
+          <!-- SECTION 3 -->
+          <div class="form-sec">
+            <div class="form-sec-hdr">
+              <span class="form-sec-title">Section 3 — Vehicle / Extra Info</span>
+              <span class="form-sec-opt">Optional — improves AI accuracy</span>
+            </div>
+            <div class="grid-3">
+
+              <div class="field-card" id="veh-card">
+                <div class="field-label">Vehicle Type</div>
+                <select class="f-select" id="f-veh">
+                  <option value="">— Not Applicable —</option>
+                  <option>LCV</option><option>Heavy Vehicle</option>
+                  <option>BMTC Bus</option><option>KSRTC Bus</option>
+                  <option>Private Car</option><option>Truck</option>
+                  <option>Auto</option><option>Taxi</option><option>Motorcycle</option>
+                </select>
+                
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Description</div>
+                <textarea class="f-textarea" id="f-desc" placeholder="Describe the situation on ground..."></textarea>
+              </div>
+
+              <div class="field-card">
+                <div class="field-label">Expected End Time</div>
+                <input class="f-input" type="datetime-local" id="f-endtime"/>
+                
+              </div>
+
+            </div>
+          </div>
+
+          <div class="form-submit-bar">
+            <button type="submit" class="btn-primary">Analyse &amp; Add Event</button>
+            <button type="button" class="btn-secondary" onclick="resetForm()">Clear Form</button>
+            <span style="font-family:'JetBrains Mono',monospace;font-size:.72rem;color:var(--muted);margin-left:auto">AI scores event immediately on submit</span>
+          </div>
+
+        </form>
+
+        <!-- AI RESULT -->
+        <div id="ai-result">
+          <div class="form-sec-hdr" style="margin-top:1.5rem">
+            <span class="form-sec-title">AI Analysis Result</span>
+            <span class="sb-badge" id="ai-priority-badge" style="position:static;transform:none;font-size:.7rem;padding:.2rem .7rem">—</span>
+          </div>
+          <div class="ai-grid">
+            <div class="ai-cell">
+              <div class="ai-cell-label">Impact Score</div>
+              <div class="ai-cell-value" id="ai-score">—</div>
+              <div class="score-wrap" style="margin-top:.5rem">
+                <div class="score-track"><div class="score-fill" id="ai-score-bar" style="width:0%"></div></div>
+                <span class="score-num" id="ai-score-num">0</span>
+              </div>
+            </div>
+            <div class="ai-cell">
+              <div class="ai-cell-label">Officers Needed</div>
+              <div class="ai-cell-value" id="ai-officers">—</div>
+            </div>
+            <div class="ai-cell">
+              <div class="ai-cell-label">Est. Resolution</div>
+              <div class="ai-cell-value" id="ai-resolution">—</div>
+            </div>
+            <div class="ai-cell">
+              <div class="ai-cell-label">Road Closure</div>
+              <div class="ai-cell-value" id="ai-closure">—</div>
+            </div>
+          </div>
+          <div class="ai-action-box">
+            <div class="ai-action-label">Recommended Action</div>
+            <div class="ai-action-text" id="ai-action">—</div>
+          </div>
+          <div class="ai-barricade-box">
+            <div class="ai-barricade-label">Barricade + Divert Plan</div>
+            <div class="ai-barricade-text" id="ai-barricade">—</div>
+          </div>
+          <div style="margin-top:1rem;display:flex;gap:.8rem">
+            <button class="btn-primary" style="font-size:.82rem;padding:.55rem 1.3rem" onclick="nav('events',document.getElementById('nav-events'))">View in Events →</button>
+            <button class="btn-secondary" style="font-size:.82rem;padding:.55rem 1.1rem" onclick="resetForm()">Add Another Event</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── LIVE MAP ───────────────────────────── -->
+    <div id="page-livemap" class="page-section">
+      <div class="stat-row c3" id="map-kpis"></div>
+      <div class="card" style="margin-bottom:1.2rem">
+        <div class="card-hdr">
+          <span class="card-title">Bengaluru Zone Coverage Map</span>
+          <span class="card-meta mono">● LIVE · Events plotted by corridor</span>
+        </div>
+        <svg id="main-map" viewBox="0 0 900 540">
+          <!-- Road grid -->
+          <line x1="50" y1="100" x2="850" y2="100" stroke="var(--border)" stroke-width="2"/>
+          <line x1="50" y1="180" x2="850" y2="180" stroke="var(--border)" stroke-width="2.5"/>
+          <line x1="50" y1="270" x2="850" y2="270" stroke="var(--border)" stroke-width="2"/>
+          <line x1="50" y1="360" x2="850" y2="360" stroke="var(--border)" stroke-width="2.5"/>
+          <line x1="50" y1="440" x2="850" y2="440" stroke="var(--border)" stroke-width="2"/>
+          <line x1="120" y1="40" x2="120" y2="510" stroke="var(--border)" stroke-width="1.5"/>
+          <line x1="230" y1="40" x2="230" y2="510" stroke="var(--border)" stroke-width="2.5"/>
+          <line x1="360" y1="40" x2="360" y2="510" stroke="var(--border)" stroke-width="1.5"/>
+          <line x1="490" y1="40" x2="490" y2="510" stroke="var(--border)" stroke-width="2.5"/>
+          <line x1="620" y1="40" x2="620" y2="510" stroke="var(--border)" stroke-width="1.5"/>
+          <line x1="750" y1="40" x2="750" y2="510" stroke="var(--border)" stroke-width="2.5"/>
+          <!-- Corridor labels -->
+          <text x="450" y="93"  font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)" text-anchor="middle">Tumkur Road / ORR North</text>
+          <text x="450" y="173" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)" text-anchor="middle">Bellary Road</text>
+          <text x="450" y="263" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)" text-anchor="middle">Mysore Road</text>
+          <text x="450" y="353" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)" text-anchor="middle">Hosur Road / Bannerghatta</text>
+          <text x="450" y="433" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)" text-anchor="middle">Old Madras Road / ORR South</text>
+          <text x="750" y="35"  font-family="JetBrains Mono,monospace" font-size="8" fill="var(--muted)">ORR East</text>
+          <text x="120" y="35"  font-family="JetBrains Mono,monospace" font-size="8" fill="var(--muted)">Magadi</text>
+          <!-- Zone labels -->
+          <text x="65"  y="60" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--primary)" opacity=".6">N Z-1</text>
+          <text x="240" y="60" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--primary)" opacity=".6">N Z-2</text>
+          <text x="370" y="60" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--primary)" opacity=".6">C Z-1</text>
+          <text x="500" y="60" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--red)"     opacity=".7">C Z-2</text>
+          <text x="65"  y="198" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--primary)" opacity=".6">W Z-1</text>
+          <text x="240" y="198" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--red)"     opacity=".7">W Z-2</text>
+          <text x="630" y="198" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--primary)" opacity=".6">E Z-1</text>
+          <text x="65"  y="288" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--primary)" opacity=".6">S Z-1</text>
+          <text x="370" y="288" font-family="JetBrains Mono,monospace" font-size="7" fill="var(--red)"     opacity=".7">S Z-2</text>
+          <!-- Dynamic events layer -->
+          <g id="map-events-layer"></g>
+          <!-- Legend -->
+          <circle cx="60"  cy="525" r="5" fill="var(--red)"/>  <text x="70"  y="529" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)">High</text>
+          <circle cx="120" cy="525" r="5" fill="var(--amber)"/><text x="130" y="529" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)">Medium</text>
+          <circle cx="200" cy="525" r="5" fill="var(--primary)"/><text x="210" y="529" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)">Low</text>
+          <circle cx="255" cy="525" r="5" fill="var(--green)"/><text x="265" y="529" font-family="JetBrains Mono,monospace" font-size="9" fill="var(--muted)">Resolved</text>
+        </svg>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Events on Map</span><span class="card-meta" id="map-evt-count">0 active</span></div>
+        <div id="map-event-list" class="alert-feed"></div>
+      </div>
+    </div>
+
+    <!-- ── EVENTS ────────────────────────────── -->
+    <div id="page-events" class="page-section">
+      <div class="stat-row c3" id="evt-kpis"></div>
+      <div class="card">
+        <div class="card-hdr">
+          <span class="card-title">All Events</span>
+          <span class="card-meta" id="evt-count-meta">0 events</span>
+        </div>
+        <div class="filter-bar">
+          <input class="f-sm-input" type="text" id="evt-search" placeholder="Search junction / corridor..." oninput="renderEvents()"/>
+          <select class="f-sm" id="evt-filter-status" onchange="renderEvents()">
+            <option value="">All Status</option>
+            <option value="active">Active</option>
+            <option value="resolved">Resolved</option>
+          </select>
+          <select class="f-sm" id="evt-filter-priority" onchange="renderEvents()">
+            <option value="">All Priority</option>
+            <option value="High">High</option>
+            <option value="Medium">Medium</option>
+            <option value="Low">Low</option>
+          </select>
+          <select class="f-sm" id="evt-filter-cause" onchange="renderEvents()">
+            <option value="">All Causes</option>
+            <option value="accident">Accident</option>
+            <option value="vehicle_breakdown">Vehicle Breakdown</option>
+            <option value="water_logging">Water Logging</option>
+            <option value="tree_fall">Tree Fall</option>
+            <option value="pot_holes">Pot Holes</option>
+            <option value="construction">Construction</option>
+            <option value="public_event">Public Event</option>
+            <option value="congestion">Congestion</option>
+            <option value="vip_movement">VIP Movement</option>
+            <option value="procession">Procession</option>
+            <option value="protest">Protest</option>
+            <option value="others">Others</option>
+          </select>
+          <button class="f-btn" onclick="clearFilters()">Clear</button>
+          <span class="f-count" id="evt-filtered-count"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table class="data-table">
+            <thead><tr>
+              <th>ID</th><th>Type</th><th>Cause</th><th>Junction</th><th>Corridor</th>
+              <th>Zone</th><th>Station</th><th>Impact</th><th>Priority</th>
+              <th>Officers</th><th>Resolution</th><th>Closure</th><th>Status</th><th>Actions</th>
+            </tr></thead>
+            <tbody id="events-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── AI FORECAST ───────────────────────── -->
+    <div id="page-forecast" class="page-section">
+      <div class="stat-row c3">
+        <div class="stat-card" style="cursor:pointer;transition:transform 0.2s" onclick="showHighRiskEvents()" onmouseover="this.style.transform='translateY(-3px)'" onmouseout="this.style.transform='none'"><div class="sc-label">Next 1h Predicted <span style="font-size:0.6rem;background:var(--red);color:white;padding:2px 6px;border-radius:4px;margin-left:5px">VIEW</span></div><div class="sc-value r" id="fc-1h">—</div><div class="sc-sub">High risk events</div><div class="sc-bar br"></div></div>
+        <div class="stat-card"><div class="sc-label">Peak Hour Risk</div><div class="sc-value a">HIGH</div><div class="sc-sub">7–10am · 5–8pm</div><div class="sc-bar ba"></div></div>
+        <div class="stat-card"><div class="sc-label">Top Congestion Cause</div><div class="sc-value b" id="fc-top-cause">—</div><div class="sc-sub">Based on history</div><div class="sc-bar bb"></div></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Hourly Event Forecast</span><span class="card-meta">Next 6 hours</span></div>
+          <div style="height:250px;position:relative"><canvas id="fc-canvas"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Cause Risk Index</span><span class="card-meta">Dataset-derived AI risk scores</span></div>
+          <div id="risk-bars"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1.5rem">
+        <div class="card-hdr">
+          <span class="card-title">Zone Performance: Resolution Rate</span>
+          <span class="card-meta">Resolved vs Active Events by Zone</span>
+        </div>
+        <div style="height:320px;position:relative;padding:1rem">
+          <canvas id="zp-canvas"></canvas>
+        </div>
+      </div>
+      
+    </div>
+
+    <!-- ── DEPLOY PLAN ────────────────────────── -->
+    <div id="page-deploy" class="page-section">
+      <div class="card" style="margin-bottom:1rem">
+        <div class="card-hdr">
+          <span class="card-title">Active Deployment Orders</span>
+          <span class="card-meta" id="deploy-summary-label">0 orders</span>
+        </div>
+        <div style="display:flex;gap:.8rem;margin-bottom:1.4rem;flex-wrap:wrap">
+          <button class="dl-btn" onclick="generateReport()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Deploy Plan
+          </button>
+          <button class="btn-secondary" style="font-size:.82rem;padding:.5rem 1rem" onclick="nav('addevent',document.getElementById('nav-addevent'))">+ Add Event</button>
+        </div>
+        <div id="deploy-cards"></div>
+      </div>
+    </div>
+
+    <!-- ── ALERTS ────────────────────────────── -->
+    <div id="page-alerts" class="page-section">
+      <div class="stat-row c3" id="alert-kpis"></div>
+      
+      <!-- Unverified Citizen Reports -->
+      <div class="card" id="card-unverified-reports" style="margin-bottom:1.5rem; display:none; border:2px solid var(--amber);">
+        <div class="card-hdr" style="background:rgba(var(--amber-rgb, 180, 83, 9), 0.05);">
+          <span class="card-title" style="color:var(--amber);">Unverified Citizen Reports</span>
+          <span class="card-meta">Awaiting Police Verification</span>
+        </div>
+        <div class="alert-feed" id="unverified-feed" style="padding: 1rem;"></div>
+      </div>
+      
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Active High Priority Alerts</span><span class="card-meta">Real-time · Auto-refresh on event add</span></div>
+        <div class="alert-feed" id="big-alert-feed"></div>
+      </div>
+    </div>
+
+    <!-- ── ANALYTICS ─────────────────────────── -->
+    <div id="page-analytics" class="page-section">
+
+      <div class="card" style="margin-bottom:1.5rem">
+        <div class="card-hdr"><span class="card-title">30-Day Incident Trend Analysis</span><span class="card-meta">Dataset Aggregation</span></div>
+        <svg viewBox="0 0 800 200" style="width:100%;height:auto;overflow:visible;margin-top:1rem">
+          <line x1="0" y1="50" x2="800" y2="50" stroke="var(--border)" stroke-dasharray="4 4" />
+          <line x1="0" y1="100" x2="800" y2="100" stroke="var(--border)" stroke-dasharray="4 4" />
+          <line x1="0" y1="150" x2="800" y2="150" stroke="var(--border)" stroke-dasharray="4 4" />
+          <line x1="0" y1="200" x2="800" y2="200" stroke="var(--border)" />
+          
+          <path d="M0,200 L0,140 L100,160 L200,90 L300,110 L400,60 L500,80 L600,40 L700,70 L800,30 L800,200 Z" fill="rgba(var(--pri-rgb), 0.1)" />
+          <path d="M0,140 L100,160 L200,90 L300,110 L400,60 L500,80 L600,40 L700,70 L800,30" fill="none" stroke="var(--primary)" stroke-width="3" />
+          
+          <circle cx="100" cy="160" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+          <circle cx="200" cy="90" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+          <circle cx="300" cy="110" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+          <circle cx="400" cy="60" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+          <circle cx="500" cy="80" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+          <circle cx="600" cy="40" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+          <circle cx="700" cy="70" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+          <circle cx="800" cy="30" r="5" fill="var(--bg)" stroke="var(--primary)" stroke-width="3"/>
+        </svg>
+        <div style="display:flex;justify-content:space-between;margin-top:1rem;font-size:.7rem;color:var(--muted);font-family:'JetBrains Mono',monospace">
+          <span>Week 1</span><span>Week 2</span><span>Week 3</span><span>Week 4</span>
+        </div>
+      </div>
+
+      <!-- Row 1: Priority Chart + Priority Bars -->
+      <div class="two-col" style="margin-bottom:1.5rem">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Event Priority Breakdown</span><span class="card-meta">Live &mdash; all created events</span></div>
+          <div style="position:relative; height:180px; margin-top:0.8rem;">
+            <canvas id="analytics-trend-chart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Priority Distribution</span><span class="card-meta">Event severity split</span></div>
+          <div id="an-live-bars" style="margin-top:0.4rem;"></div>
+        </div>
+      </div>
+      <!-- Row 2: Cause + Corridor -->
+      <div class="two-col" style="margin-bottom:1.5rem">
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Events by Cause</span><span class="card-meta">All system events</span></div>
+          <div id="an-cause-bars" style="margin-top:0.4rem;"></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr"><span class="card-title">Events by Corridor</span><span class="card-meta">Top impacted corridors</span></div>
+          <div id="an-corr-bars" style="margin-top:0.4rem;"></div>
+        </div>
+      </div>
+      <!-- Row 3: Zone Distribution full width -->
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">Zone Distribution</span><span class="card-meta">Events spread across all zones</span></div>
+        <div id="an-zone-bars" style="margin-top:0.4rem;"></div>
+      </div>
+    </div>
+
+    <!-- ── USERS ─────────────────────────────── -->
+    <div id="page-users" class="page-section">
+      <div class="stat-row c3">
+        <div class="stat-card"><div class="sc-label">Total Users</div><div class="sc-value b">4</div><div class="sc-sub">System accounts</div><div class="sc-bar bb"></div></div>
+        <div class="stat-card"><div class="sc-label">Active Now</div><div class="sc-value g">1</div><div class="sc-sub">Admin session</div><div class="sc-bar bg"></div></div>
+        <div class="stat-card"><div class="sc-label">Roles</div><div class="sc-value a">3</div><div class="sc-sub">Admin · Officer · Controller</div><div class="sc-bar ba"></div></div>
+      </div>
+      <div class="card">
+        <div class="card-hdr"><span class="card-title">System Users</span><span class="card-meta">Role-based access control</span></div>
+        <table class="data-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Zone</th><th>Status</th><th>Last Login</th></tr></thead>
+          <tbody>
+            <tr><td>Suresh Kumar</td><td class="mono">admin@trafficsense.in</td><td><span class="pill ph">Admin</span></td><td>All Zones</td><td><span class="pill pr">Active</span></td><td class="mono">Now</td></tr>
+            
+            <tr><td>Meera Nair</td><td class="mono">controller@trafficsense.in</td><td><span class="pill pl">Controller</span></td><td>All Zones</td><td><span class="pill pr">Active</span></td><td class="mono">4m ago</td></tr>
+            <tr><td>Public Portal</td><td class="mono">public@trafficsense.in</td><td><span class="pill pc">Public</span></td><td>—</td><td><span class="pill pc">Guest</span></td><td class="mono">—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+</div><!-- /shell -->
+
+<script>
+/* ══════════════════════════════════════════════
+   CONSTANTS — AI MODEL (from dataset analysis)
+══════════════════════════════════════════════ */
+const BASE_SCORE = {
+  accident:72, vip_movement:68, protest:65, public_event:62,
+  procession:58, water_logging:55, congestion:52, tree_fall:48,
+  vehicle_breakdown:45, pot_holes:42, construction:38,
+  road_conditions:35, others:30
+};
+const RESOLUTION_MINS = {
+  accident:95, vip_movement:30, protest:120, public_event:150,
+  procession:90, water_logging:180, congestion:60, tree_fall:75,
+  vehicle_breakdown:45, pot_holes:120, construction:240,
+  road_conditions:90, others:60
+};
+const CORRIDOR_ZONE = {
+  'Tumkur Road':'North Zone 1','Mysore Road':'West Zone 1',
+  'Bellary Road 1':'North Zone 1','Bellary Road 2':'North Zone 2',
+  'Hosur Road':'South Zone 2','ORR East 1':'East Zone 1',
+  'ORR East 2':'East Zone 2','ORR North 1':'North Zone 1',
+  'ORR North 2':'North Zone 2','ORR South':'South Zone 1',
+  'Old Madras Road':'East Zone 1','Magadi Road':'West Zone 1',
+  'Bannerghatta Road':'South Zone 1','NH 44':'North Zone 2',
+  'Kanakapura Road':'South Zone 1','Hennuru Road':'East Zone 2',
+  'Sarjapur Road':'East Zone 1','NICE Road':'West Zone 2',
+  'Non-corridor':'Central Zone 1'
+};
+const CORRIDOR_POS = {
+  'Tumkur Road':{x:280,y:100},'Mysore Road':{x:175,y:270},
+  'Bellary Road 1':{x:360,y:140},'Bellary Road 2':{x:490,y:140},
+  'Hosur Road':{x:490,y:355},'ORR East 1':{x:750,y:180},
+  'ORR East 2':{x:750,y:270},'ORR North 1':{x:280,y:180},
+  'ORR North 2':{x:390,y:180},'ORR South':{x:490,y:440},
+  'Old Madras Road':{x:620,y:355},'Magadi Road':{x:120,y:270},
+  'Bannerghatta Road':{x:360,y:355},'NH 44':{x:620,y:100},
+  'Kanakapura Road':{x:230,y:440},'Hennuru Road':{x:680,y:180},
+  'Sarjapur Road':{x:620,y:270},'NICE Road':{x:120,y:360},
+  'Non-corridor':{x:450,y:270}
+};
+const ACTION_MAP = {
+  accident:'Deploy medical response team immediately. Set up temporary diversion at nearest junction. Alert nearby police station for crowd control and tow vehicle.',
+  vehicle_breakdown:'Position tow vehicle at site. Set up cones behind breakdown. If blocking lane, enforce single-lane movement. Alert patrol for assistance.',
+  water_logging:'Barricade flooded stretch. Activate diversion plan. Alert BBMP drainage team. Post officers at both approach ends.',
+  tree_fall:'Cordone off area. Alert BBMP tree department for removal. Position officers to manage one-way traffic through alternate route.',
+  pot_holes:'Place safety markers. Alert BBMP road maintenance. Post officer to slow traffic and guide vehicles safely through.',
+  construction:'Enforce work-zone speed limits. Activate construction diversion plan. Ensure contractor has placed approved signage.',
+  public_event:'Pre-position officers at event perimeter. Activate crowd management plan. Set up one-way traffic corridors near venue.',
+  congestion:'Activate signal coordination override for corridor. Deploy traffic officers at 3 key junctions. Enable alternate route advisory.',
+  vip_movement:'Activate VIP movement protocol. Clear lead and trail corridors. Position outriders and coordinate with VIP security.',
+  procession:'Activate procession diversion plan. Close primary route. Deploy officers at all major intersections along route.',
+  protest:'Coordinate with law and order. Activate emergency diversion. Deploy additional officers. Monitor crowd density in real time.',
+  road_conditions:'Post warning boards. Alert BBMP maintenance. Deploy officers to slow and guide traffic safely through affected area.',
+  others:'Deploy officers to assess situation. Activate standard diversion if needed. Coordinate with nearest police station.'
+};
+const BARRICADE_MAP = {
+  accident:'Place barricades 200m on both approaches. Divert via nearest parallel road. Signal override at junction.',
+  vehicle_breakdown:'Half-road barricade. Cones 50m behind vehicle. Redirect through service road if available.',
+  water_logging:'Full road closure both directions. Signed diversion to parallel road. Officer at each barricade point.',
+  tree_fall:'Full closure at tree location. Signed detour through alternate corridor. Remove after BBMP clearance.',
+  pot_holes:'Single-lane cones around pothole. Reduce speed advisory. Permanent fix request raised.',
+  construction:'Full closure of construction stretch. Contractor-managed barricades. Diversion signs at 500m.',
+  public_event:'Perimeter barricading around venue. One-way corridor enforcement. No parking zone 500m radius.',
+  congestion:'No hard barricades. Signal timing adjustment. Officers at bottleneck junctions for flow management.',
+  vip_movement:'Temporary clearance barricades on route. Lifted after VIP passage. Coordinate with VIP security.',
+  procession:'Full route closure for procession duration. Parallel corridor activated. Officers every 200m.',
+  protest:'Heavy barricading at protest perimeter. Multiple inner and outer cordons. Emergency vehicle route kept clear.',
+  road_conditions:'Advisory cones. Caution boards. Officer present until maintenance team arrives.',
+  others:'Standard barricade setup per site assessment. Divert as needed.'
+};
+
+/* ══════════════════════════════════════════════
+   STORAGE
+══════════════════════════════════════════════ */
+const KEY = 'ts_events_v3';
+function loadEvents(){ try{ return JSON.parse(localStorage.getItem(KEY)||'[]'); }catch(e){ return []; } }
+function saveEvents(ev){ localStorage.setItem(KEY, JSON.stringify(ev)); }
+
+let evtCounter = loadEvents().length + 1;
+
+/* ══════════════════════════════════════════════
+   THEME
+══════════════════════════════════════════════ */
+const html = document.documentElement;
+(function(){
+  const t = localStorage.getItem('ts-theme');
+  if(t) html.setAttribute('data-theme', t);
+})();
+function toggleTheme(){
+  const t = html.getAttribute('data-theme') === 'day' ? 'night' : 'day';
+  html.setAttribute('data-theme', t);
+  localStorage.setItem('ts-theme', t);
+}
+
+/* ══════════════════════════════════════════════
+   CLOCK
+══════════════════════════════════════════════ */
+function tickClock() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const dt = document.getElementById('live-date');
+  if(dt) dt.textContent = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+tickClock();
+setInterval(tickClock, 1000);
+
+/* ══════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════ */
+function nav(page, btn){
+  document.querySelectorAll('.page-section').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(b => b.classList.remove('active'));
+  const pageEl = document.getElementById('page-'+page);
+  if(pageEl) pageEl.classList.add('active');
+  if(btn) btn.classList.add('active');
+  const titles = {
+    overview:'Overview', addevent:'Add Event', livemap:'Live Map',
+    events:'Events', forecast:'AI Forecast', deploy:'Deploy Plan',
+    alerts:'Alerts', analytics:'Analytics', users:'Users'
+  };
+  document.getElementById('page-title').textContent = titles[page] || page;
+  document.getElementById('content').scrollTop = 0;
+  window.scrollTo(0,0);
+  // Render on navigate
+  if(page==='overview')  renderOverview();
+  if(page==='livemap')   renderLiveMap();
+  if(page==='events')    renderEvents();
+  if(page==='deploy')    renderDeploy();
+  if(page==='alerts')    renderAlerts();
+  if(page==='analytics') renderAnalytics();
+  if(page==='reports') renderReports();
+  if(page==='forecast')  renderForecast();
+}
+
+/* ══════════════════════════════════════════════
+   FORM HELPERS
+══════════════════════════════════════════════ */
+function setType(t){
+  document.getElementById('f-type').value = t;
+  document.getElementById('btn-planned').className   = 'tog-btn' + (t==='planned'   ? ' sel-planned':'');
+  document.getElementById('btn-unplanned').className = 'tog-btn' + (t==='unplanned' ? ' sel-unplanned':'');
+}
+function setClosure(v){
+  document.getElementById('f-closure').value = v;
+  document.getElementById('btn-no').className  = 'tog-btn' + (v==='no'  ? ' sel-no':'');
+  document.getElementById('btn-yes').className = 'tog-btn' + (v==='yes' ? ' sel-yes':'');
+}
+function onCorridorChange(){
+  const c = document.getElementById('f-corridor').value;
+  const zone = CORRIDOR_ZONE[c] || '';
+  const zSel = document.getElementById('f-zone');
+  for(let i=0;i<zSel.options.length;i++){
+    if(zSel.options[i].text === zone){ zSel.selectedIndex=i; break; }
+  }
+}
+function onCauseChange(){
+  const c = document.getElementById('f-cause').value;
+  document.getElementById('veh-card').style.opacity = c==='vehicle_breakdown' ? '1' : '.5';
+}
+function resetForm(){
+  document.getElementById('add-event-form').reset();
+  setType('planned');
+  document.getElementById('btn-no').className = 'tog-btn';
+  document.getElementById('btn-yes').className = 'tog-btn';
+  document.getElementById('f-closure').value = '';
+  document.getElementById('f-datetime').value = new Date().toISOString().slice(0,16);
+  document.getElementById('ai-result').style.display = 'none';
+}
+
+/* ══════════════════════════════════════════════
+   AI SCORING ENGINE
+══════════════════════════════════════════════ */
+function scoreEvent(evt){
+  let s = BASE_SCORE[evt.cause] || 30;
+  if(evt.type === 'unplanned') s += 10;
+  if(evt.closure === 'yes') s += 20;
+  const hr = new Date(evt.datetime).getHours();
+  if((hr>=7 && hr<10)||(hr>=17 && hr<20)) s += 10;
+  return Math.min(100, s);
+}
+function getPriority(score){
+  if(score>=80) return 'High';
+  if(score>=50) return 'Medium';
+  return 'Low';
+}
+function getResolution(cause){ return (RESOLUTION_MINS[cause]||60) + ' min'; }
+function getOfficers(score){ return Math.ceil(score/25); }
+
+/* ══════════════════════════════════════════════
+   SUBMIT EVENT
+══════════════════════════════════════════════ */
+async function submitEvent(e){
+  e.preventDefault();
+  const type    = document.getElementById('f-type').value;
+  const cause   = document.getElementById('f-cause').value;
+  const corridor= document.getElementById('f-corridor').value;
+  const zone    = document.getElementById('f-zone').value;
+  const closure = document.getElementById('f-closure').value;
+  const datetime= document.getElementById('f-datetime').value;
+  const junction= document.getElementById('f-junction').value.trim();
+  const station = document.getElementById('f-station').value;
+  const lat     = document.getElementById('f-lat').value;
+  const lng     = document.getElementById('f-lng').value;
+  const veh     = document.getElementById('f-veh').value;
+  const desc    = document.getElementById('f-desc').value.trim();
+
+  if(!cause||!corridor||!zone||!closure||!datetime||!junction||!station){
+    showToast('Please fill all required fields'); return;
+  }
+
+  // Show loading toast
+  showToast('AI Model processing...');
+
+  let score = 50;
+  let priority = 'Medium';
+  let predictedClosure = closure;
+
+  try {
+    const response = await fetch('http://localhost:5000/api/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cause, corridor, veh_type: veh, station })
+    });
+    const data = await response.json();
+    if (data.status === 'success') {
+      score = data.prediction.impact_score;
+      priority = data.prediction.priority;
+      predictedClosure = data.prediction.requires_closure;
+      console.log('Real ML Prediction:', data.prediction);
+    } else {
+      throw new Error("Backend returned error");
+    }
+  } catch (error) {
+    console.warn('ML Backend offline, using fallback heuristic:', error);
+    score = scoreEvent({cause,type,closure,datetime});
+    priority = getPriority(score);
+  }
+
+  const all = loadEvents();
+  const id = 'EVT-' + String(all.length+1).padStart(4,'0');
+  const resolution = getResolution(cause);
+  const officers = getOfficers(score);
+  const action   = ACTION_MAP[cause] || ACTION_MAP.others;
+  const barricade= BARRICADE_MAP[cause] || BARRICADE_MAP.others;
+  const scoreColor = priority==='High'?'var(--red)':priority==='Medium'?'var(--amber)':'var(--primary)';
+
+  const evt = {
+    id,type,cause,corridor,zone,closure: predictedClosure,datetime,junction,station,
+    lat,lng,veh,desc,score,priority,resolution,officers,action,barricade,
+    status:'active', added: new Date().toISOString()
+  };
+  all.push(evt);
+  saveEvents(all);
+  evtCounter = all.length + 1;
+
+  // Show AI result
+  const res = document.getElementById('ai-result');
+  res.style.display = 'block';
+  document.getElementById('ai-score').textContent = score + ' / 100';
+  document.getElementById('ai-score-bar').style.cssText = `width:${score}%;background:${scoreColor}`;
+  document.getElementById('ai-score-num').textContent = score;
+  document.getElementById('ai-officers').textContent = officers + ' officers';
+  document.getElementById('ai-resolution').textContent = resolution;
+  document.getElementById('ai-closure').textContent = predictedClosure.toUpperCase();
+  document.getElementById('ai-action').textContent = action;
+  document.getElementById('ai-barricade').textContent = barricade;
+  const badge = document.getElementById('ai-priority-badge');
+  badge.textContent = priority;
+  badge.style.background = priority==='High'?'rgba(var(--red-rgb),.15)':priority==='Medium'?'rgba(var(--amber-rgb),.15)':'rgba(var(--pri-rgb),.12)';
+  badge.style.color = scoreColor;
+
+  updateBadges();
+  showToast('Event ' + id + ' added · Priority: ' + priority);
+  res.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+/* ══════════════════════════════════════════════
+   UPDATE BADGES
+══════════════════════════════════════════════ */
+function updateBadges(){
+  const all = loadEvents();
+  const active = all.filter(e=>e.status==='active');
+  const high   = active.filter(e=>e.priority==='High');
+  document.getElementById('badge-total').textContent = 7155 + all.length;
+  document.getElementById('badge-active').textContent = 1204 + active.length;
+  document.getElementById('badge-high').textContent = 142 + high.length;
+}
+
+/* ══════════════════════════════════════════════
+   OVERVIEW
+══════════════════════════════════════════════ */
+function renderOverview(){
+  const all    = loadEvents();
+  const active = all.filter(e=>e.status==='active');
+  const high   = active.filter(e=>e.priority==='High');
+  const closures = active.filter(e=>e.closure==='yes');
+
+  // KPI cards
+  const resolvedLen = all.filter(e=>e.status==='resolved').length;
+  document.getElementById('ov-kpis').innerHTML = `
+    <div class="stat-card"><div class="sc-label">Total Events</div><div class="sc-value b">${all.length}</div><div class="sc-sub">${active.length} active · ${resolvedLen} resolved</div><div class="sc-bar bb"></div></div>
+    <div class="stat-card"><div class="sc-label">Active Incidents</div><div class="sc-value r">${active.length}</div><div class="sc-sub">Requiring attention</div><div class="sc-bar br"></div></div>
+    <div class="stat-card"><div class="sc-label">High Priority</div><div class="sc-value a">${high.length}</div><div class="sc-sub">Immediate action needed</div><div class="sc-bar ba"></div></div>
+    <div class="stat-card"><div class="sc-label">Road Closures</div><div class="sc-value r">${closures.length}</div><div class="sc-sub">Barricading in effect</div><div class="sc-bar br"></div></div>
+  `;
+
+  // Cause bars
+  const causeCounts = {};
+  all.forEach(e=>{ causeCounts[e.cause]=(causeCounts[e.cause]||0)+1; });
+  const causeMax = Math.max(...Object.values(causeCounts));
+  const COLORS = {
+    accident:'var(--red)',vehicle_breakdown:'var(--amber)',water_logging:'var(--primary)',
+    tree_fall:'var(--green)',pot_holes:'var(--amber)',construction:'var(--muted)',
+    public_event:'var(--primary)',congestion:'var(--red)',vip_movement:'var(--primary)',
+    procession:'var(--primary)',protest:'var(--red)',road_conditions:'var(--muted)',others:'var(--muted)'
+  };
+  const causeArr = Object.entries(causeCounts).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('ov-cause-meta').textContent = causeArr.length + ' causes';
+  document.getElementById('ov-cause-bars').innerHTML = causeArr.map(([c,n])=>`
+    <div class="bar-row">
+      <span class="bar-label" title="${fmtCause(c)}">${fmtCause(c)}</span>
+      <div class="bar-track"><div class="bar-fill" style="background:${COLORS[c]||'var(--muted)'};width:${Math.round(n/causeMax*100)}%"></div></div>
+      <span class="bar-count">${n}</span>
+    </div>`).join('');
+
+  // Status donut
+  const aLen = active.length, rLen = all.filter(e=>e.status==='resolved').length;
+  const total = all.length;
+  const aAng = total ? (aLen/total*360) : 0;
+  function describeArc(pct){
+    const r=54,cx=60,cy=60,startAngle=-90;
+    const end = startAngle + pct*3.6;
+    const rad = a => a*Math.PI/180;
+    const x1=cx+r*Math.cos(rad(startAngle)), y1=cy+r*Math.sin(rad(startAngle));
+    const x2=cx+r*Math.cos(rad(end)),         y2=cy+r*Math.sin(rad(end));
+    const large = pct>50?1:0;
+    return pct>=100 ? `M ${cx} ${cy-r} A ${r} ${r} 0 1 1 ${cx-0.01} ${cy-r}` :
+      `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+  }
+  document.getElementById('ov-donut').innerHTML = `
+    <svg width="120" height="120" viewBox="0 0 120 120">
+      <circle cx="60" cy="60" r="54" fill="none" stroke="var(--border)" stroke-width="12"/>
+      ${total>0?`<path d="${describeArc(aLen/total*100)}" fill="none" stroke="var(--red)" stroke-width="12" stroke-linecap="round"/>`:'' }
+      ${rLen>0?`<path d="${describeArc(rLen/total*100)}" fill="none" stroke="var(--green)" stroke-width="12" stroke-linecap="round" stroke-dashoffset="${-(aLen/total*100)*3.397}"/>`:'' }
+      <text x="60" y="65" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="18" font-weight="700" fill="var(--text)">${total}</text>
+    </svg>
+    <div class="donut-legend">
+      <div class="donut-item"><div class="donut-dot" style="background:var(--red)"></div>Active<span class="donut-val">${aLen}</span></div>
+      <div class="donut-item"><div class="donut-dot" style="background:var(--green)"></div>Resolved<span class="donut-val">${rLen}</span></div>
+      <div class="donut-item"><div class="donut-dot" style="background:var(--amber)"></div>High Priority<span class="donut-val">${high.length}</span></div>
+      <div class="donut-item"><div class="donut-dot" style="background:var(--primary)"></div>Road Closure<span class="donut-val">${closures.length}</span></div>
+      <div class="donut-item"><div class="donut-dot" style="background:var(--muted)"></div>Total<span class="donut-val">${total}</span></div>
+    </div>`;
+
+  // Corridor bars
+  const corrCounts = {};
+  all.forEach(e=>{ if(e.corridor) corrCounts[e.corridor]=(corrCounts[e.corridor]||0)+1; });
+  const corrArr = Object.entries(corrCounts).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  const corrMax = corrArr[0]?corrArr[0][1]:1;
+  document.getElementById('ov-corr-meta').textContent = Object.keys(corrCounts).length + ' corridors';
+  document.getElementById('ov-corr-bars').innerHTML = corrArr.map(([c,n])=>`
+    <div class="bar-row">
+      <span class="bar-label" title="${c}">${c}</span>
+      <div class="bar-track"><div class="bar-fill" style="background:var(--primary);width:${Math.round(n/corrMax*100)}%"></div></div>
+      <span class="bar-count">${n}</span>
+    </div>`).join('');
+
+  // Alert feed
+  const alertEvts = active.filter(e=>e.priority==='High').slice(0,5);
+  document.getElementById('ov-alerts').innerHTML = alertEvts.length
+    ? alertEvts.map(a=>`<div class="alert-row">
+        <div class="alert-bar" style="background:${a.closure==='yes'?'var(--red)':'var(--primary)'}"></div>
+        <div class="alert-body">
+          <div class="alert-title">${a.junction} — ${fmtCause(a.cause)}</div>
+          <div class="alert-meta">${a.id} · ${a.corridor} · ${a.zone} · Score: ${a.score}</div>
+        </div>
+        <div class="alert-time">${timeAgo(a.added)}</div>
+      </div>`).join('')
+    : '<div class="empty"><strong>No high priority alerts</strong>All clear</div>';
+
+  // Recent events table
+  const recent = [...all].reverse().slice(0,10);
+  document.getElementById('ov-tbody').innerHTML = recent.length ? recent.map(e=>`
+    <tr>
+      <td class="mono">${e.id}</td>
+      <td>${pillType(e.type)}</td>
+      <td>${fmtCause(e.cause)}</td>
+      <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.junction}">${e.junction}</td>
+      <td>${e.corridor}</td>
+      <td>${e.zone||'—'}</td>
+      <td>${e.station}</td>
+      <td>${pillPriority(e.priority)}</td>
+      <td>${pillClosure(e.closure)}</td>
+      <td>${pillStatus(e.status)}</td>
+    </tr>`).join('') : '<tr><td colspan="10" class="empty"><strong>No recent live events</strong></td></tr>';
+}
+
+/* ══════════════════════════════════════════════
+   LIVE MAP
+══════════════════════════════════════════════ */
+function renderLiveMap(){
+  const all    = loadEvents();
+  const active = all.filter(e=>e.status==='active');
+  const closures = active.filter(e=>e.closure==='yes');
+  document.getElementById('map-kpis').innerHTML = `
+    <div class="stat-card"><div class="sc-label">Active Events</div><div class="sc-value r">${active.length}</div><div class="sc-sub">On map below</div><div class="sc-bar br"></div></div>
+    <div class="stat-card"><div class="sc-label">Road Closures</div><div class="sc-value a">${closures.length}</div><div class="sc-sub">Barricaded routes</div><div class="sc-bar ba"></div></div>
+    <div class="stat-card"><div class="sc-label">Zones Affected</div><div class="sc-value b">${new Set(active.map(e=>e.zone)).size}</div><div class="sc-sub">Distinct zones</div><div class="sc-bar bb"></div></div>
+  `;
+
+  const layer = document.getElementById('map-events-layer');
+  layer.innerHTML = '';
+  const posMap = {};
+
+  all.forEach(e=>{
+    const base = CORRIDOR_POS[e.corridor] || {x:450,y:270};
+    let {x,y} = base;
+    const key = e.corridor;
+    posMap[key] = (posMap[key]||0) + 1;
+    const off = posMap[key];
+    x += Math.cos(off*1.2)*18;
+    y += Math.sin(off*1.2)*18;
+
+    const color = e.status==='resolved' ? 'var(--green)' :
+                  e.priority==='High'   ? 'var(--red)'   :
+                  e.priority==='Medium' ? 'var(--amber)'  : 'var(--primary)';
+    const pulse = e.status==='active' && e.priority==='High';
+
+    layer.innerHTML += `
+      <g style="cursor:pointer" onclick="alert('${e.id}: ${e.junction.replace(/'/g,'`')} — ${fmtCause(e.cause)} | Priority: ${e.priority} | Score: ${e.score} | Status: ${e.status}')">
+        ${pulse ? `<circle cx="${x}" cy="${y}" r="12" fill="${color}" opacity=".25"><animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite"/><animate attributeName="opacity" values=".3;0;.3" dur="2s" repeatCount="indefinite"/></circle>` : ''}
+        <circle cx="${x}" cy="${y}" r="7" fill="${color}" stroke="#fff" stroke-width="1.5"/>
+        <text x="${x}" y="${y+4}" text-anchor="middle" font-family="JetBrains Mono,monospace" font-size="6" fill="#fff" font-weight="700">${e.score}</text>
+      </g>`;
+  });
+
+  document.getElementById('map-evt-count').textContent = active.length + ' active';
+  document.getElementById('map-event-list').innerHTML = active.length
+    ? active.map(e=>`<div class="alert-row">
+        <div class="alert-bar" style="background:${e.priority==='High'?'var(--red)':e.priority==='Medium'?'var(--amber)':'var(--primary)'}"></div>
+        <div class="alert-body">
+          <div class="alert-title">${e.junction} — ${fmtCause(e.cause)}</div>
+          <div class="alert-meta">${e.id} · ${e.corridor} · ${e.zone} · ${e.station} PS · Score: ${e.score}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end;flex-shrink:0">
+          ${pillPriority(e.priority)}
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted)">${timeAgo(e.added)}</span>
+        </div>
+      </div>`).join('')
+    : '<div class="empty"><strong>No active events on map</strong>Add events via "+ Add Event"</div>';
+}
+
+/* ══════════════════════════════════════════════
+   EVENTS TABLE
+══════════════════════════════════════════════ */
+function renderEvents(){
+  const all    = loadEvents();
+  const active = all.filter(e=>e.status==='active');
+  const high   = active.filter(e=>e.priority==='High');
+  const closures = active.filter(e=>e.closure==='yes');
+
+  const plannedCal = JSON.parse(localStorage.getItem('ts_planned_calendar') || '[]');
+  const upcomingPlanned = plannedCal.filter(e => e.date >= new Date().toISOString().slice(0,10)).length;
+  document.getElementById('evt-kpis').innerHTML = `
+    <div class="stat-card"><div class="sc-label">Total Events</div><div class="sc-value b">${7155 + all.length}</div><div class="sc-sub">${1204 + active.length} active · ${5951 + all.filter(e=>e.status==='resolved').length} resolved</div><div class="sc-bar bb"></div></div>
+    <div class="stat-card"><div class="sc-label">High Priority</div><div class="sc-value r">${142 + high.length}</div><div class="sc-sub">Immediate action</div><div class="sc-bar br"></div></div>
+    <div class="stat-card"><div class="sc-label">Road Closures</div><div class="sc-value a">${86 + closures.length}</div><div class="sc-sub">Barricading active</div><div class="sc-bar ba"></div></div>
+    <div class="stat-card"><div class="sc-label">Planned (Upcoming)</div><div class="sc-value g">${upcomingPlanned}</div><div class="sc-sub">From Event Calendar</div><div class="sc-bar bg"></div></div>
+  `;
+
+  const search   = document.getElementById('evt-search').value.toLowerCase();
+  const fStatus  = document.getElementById('evt-filter-status').value;
+  const fPriority= document.getElementById('evt-filter-priority').value;
+  const fCause   = document.getElementById('evt-filter-cause').value;
+
+  const PRIORITY_ORDER = { High: 0, Medium: 1, Low: 2 };
+  let filtered = all.filter(e=>{
+    if(fStatus   && e.status!==fStatus)      return false;
+    if(fPriority && e.priority!==fPriority)  return false;
+    if(fCause    && e.cause!==fCause)        return false;
+    if(search && !(e.junction.toLowerCase().includes(search)||e.corridor.toLowerCase().includes(search)||e.id.toLowerCase().includes(search))) return false;
+    return true;
+  }).sort((a, b) => {
+    // Active before resolved
+    if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
+    // High → Medium → Low
+    const pd = (PRIORITY_ORDER[a.priority]??3) - (PRIORITY_ORDER[b.priority]??3);
+    if (pd !== 0) return pd;
+    // Higher score first within same priority
+    return (b.score||0) - (a.score||0);
+  });
+
+  document.getElementById('evt-count-meta').textContent = (7155 + all.length) + ' events';
+  document.getElementById('evt-filtered-count').textContent = 'Showing ' + filtered.length;
+
+  const scoreColor = p => p==='High'?'var(--red)':p==='Medium'?'var(--amber)':'var(--primary)';
+
+  document.getElementById('events-tbody').innerHTML = filtered.length
+    ? filtered.map(e=>`<tr>
+        <td class="mono">${e.id}</td>
+        <td>${pillType(e.type)}</td>
+        <td>${fmtCause(e.cause)}</td>
+        <td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${e.junction}">${e.junction}</td>
+        <td>${e.corridor}</td>
+        <td>${e.zone||'—'}</td>
+        <td>${e.station}</td>
+        <td>
+          <div class="score-wrap" style="min-width:80px">
+            <div class="score-track"><div class="score-fill" style="width:${e.score}%;background:${scoreColor(e.priority)}"></div></div>
+            <span class="score-num" style="color:${scoreColor(e.priority)}">${e.score}</span>
+          </div>
+        </td>
+        <td>${pillPriority(e.priority)}</td>
+        <td class="mono">${e.officers}</td>
+        <td class="mono">${e.resolution}</td>
+        <td>${pillClosure(e.closure)}</td>
+        <td>${pillStatus(e.status)}</td>
+        <td>
+          <div style="display:flex;gap:.3rem;flex-wrap:wrap">
+            ${e.status==='active'?`<button class="tbl-btn tbl-res" onclick="resolveEvent('${e.id}')">Resolve</button>`:''}
+            ${e.status==='resolved' && e.proofPic ? `<button class="tbl-btn tbl-res" style="background:var(--green);border-color:var(--green);color:white" onclick="showProof('${e.id}')">Proof</button>`:''}
+            <button class="tbl-btn tbl-det" onclick="showDetail('${e.id}')">Details</button>
+          </div>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="14" class="empty"><strong>No events found</strong>Adjust filters or add events</td></tr>';
+}
+
+function clearFilters(){
+  ['evt-search','evt-filter-status','evt-filter-priority','evt-filter-cause'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){ el.tagName==='INPUT'?el.value='':el.selectedIndex=0; }
+  });
+  renderEvents();
+}
+
+function resolveEvent(id){
+  const evts=loadEvents(), idx=evts.findIndex(e=>e.id===id);
+  if(idx===-1) return;
+  evts[idx].status='resolved';
+  saveEvents(evts);
+  updateBadges();
+  renderEvents();
+  showToast(id + ' marked resolved');
+}
+
+function showDetail(id){
+  const e = loadEvents().find(ev=>ev.id===id);
+  if(!e) return;
+  alert([
+    'EVENT: ' + e.id,
+    'Type: ' + e.type + ' | Cause: ' + fmtCause(e.cause),
+    'Junction: ' + e.junction,
+    'Corridor: ' + e.corridor + ' | Zone: ' + e.zone,
+    'Station: ' + e.station + ' PS',
+    'Score: ' + e.score + '/100 | Priority: ' + e.priority,
+    'Officers: ' + e.officers + ' | Resolution: ' + e.resolution,
+    'Road Closure: ' + e.closure.toUpperCase(),
+    'Status: ' + e.status,
+    'DateTime: ' + e.datetime,
+    '',
+    'ACTION: ' + e.action,
+    '',
+    'BARRICADE: ' + e.barricade
+  ].join('\n'));
+}
+
+/* ══════════════════════════════════════════════
+   DEPLOY PLAN
+══════════════════════════════════════════════ */
+function renderDeploy(){
+  const evts = loadEvents().filter(e=>e.status==='active'&&(e.priority==='High'||e.priority==='Medium'));
+  const container = document.getElementById('deploy-cards');
+  document.getElementById('deploy-summary-label').textContent =
+    evts.length + ' deployment orders · ' + evts.filter(e=>e.priority==='High').length + ' Critical';
+
+  if(!evts.length){
+    container.innerHTML = '<div class="empty"><strong>No deployments needed</strong>Add High or Medium priority events to generate deployment orders. Low priority events do not require deployment plans.</div>';
+    return;
+  }
+
+  const sorted = [...evts].sort((a,b)=>{ const o={High:0,Medium:1}; return (o[a.priority]||2)-(o[b.priority]||2)||b.score-a.score; });
+
+  container.innerHTML = sorted.map(e=>`
+    <div class="deploy-card ${e.priority==='High'?'h':'m'}">
+      <div class="dc-top">
+        <span class="dc-title">${e.junction} — ${fmtCause(e.cause)}</span>
+        <div style="display:flex;gap:.5rem;align-items:center">
+          ${pillPriority(e.priority)}
+          ${pillClosure(e.closure)}
+          <span class="mono" style="color:${e.priority==='High'?'var(--red)':'var(--amber)'}">${e.score}/100</span>
+        </div>
+      </div>
+      <div class="dc-meta">${e.id} · ${e.corridor} · ${e.zone} · ${e.station} PS · Added: ${new Date(e.added).toLocaleString('en-IN',{dateStyle:'short',timeStyle:'short'})}</div>
+      <div class="dc-grid">
+        <div class="dc-stat"><div class="dc-stat-label">Officers</div><div class="dc-stat-val">${e.officers}</div></div>
+        <div class="dc-stat"><div class="dc-stat-label">Est. Resolution</div><div class="dc-stat-val">${e.resolution}</div></div>
+        <div class="dc-stat"><div class="dc-stat-label">Road Closure</div><div class="dc-stat-val" style="color:${e.closure==='yes'?'var(--red)':'var(--green)'}">${e.closure==='yes'?'YES':'NO'}</div></div>
+        <div class="dc-stat"><div class="dc-stat-label">Impact Score</div><div class="dc-stat-val" style="color:${e.priority==='High'?'var(--red)':'var(--amber)'}">${e.score}</div></div>
+      </div>
+      <div class="dc-action"><strong style="font-size:.78rem;color:var(--muted);font-family:'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.08em">Recommended Action</strong><br><br>${e.action}</div>
+      <div class="dc-barricade"><strong>Barricade + Divert:</strong> ${e.barricade}</div>
+      <div class="dc-btns">
+        <button class="dc-btn res" onclick="resolveEvent('${e.id}');renderDeploy()">Mark Resolved</button>
+        <button class="dc-btn out" onclick="showDetail('${e.id}')">Full Details</button>
+        ${e.controllerNotified ? `<button class="dc-btn" style="background:transparent;color:var(--green);border:1px solid var(--green);opacity:0.8;cursor:default" disabled>✓ Controller Notified</button>` : `<button class="dc-btn" style="background:rgba(56,114,250,0.15);color:var(--primary);border:1px solid var(--primary);" onclick="notifyTrafficController('${e.id}')">🔔 Notify Traffic Controller</button>`}
+      </div>
+    </div>`).join('');
+}
+
+/* ══════════════════════════════════════════════
+   REPORT DOWNLOAD — safe closing tags via _c()
+══════════════════════════════════════════════ */
+function notifyTrafficController(id) {
+  const all = loadEvents();
+  const idx = all.findIndex(e => e.id === id);
+  if (idx !== -1) {
+    all[idx].controllerNotified = true;
+    saveEvents(all);
+    showToast(`Notified Traffic Controller for ${all[idx].zone}`);
+    if(typeof renderDeploy === 'function') renderDeploy();
+  }
+}
+
+function generateReport(){
+  const evts = loadEvents().filter(e=>e.status==='active'&&(e.priority==='High'||e.priority==='Medium'));
+  if(!evts.length){ showToast('No High/Medium events to include in report'); return; }
+
+  const now = new Date();
+  const dateStr = now.toLocaleString('en-IN',{dateStyle:'full',timeStyle:'short'});
+  const email = document.getElementById('sb-email').textContent;
+  const totalOfficers = evts.reduce((s,e)=>s+e.officers,0);
+  const closureCount  = evts.filter(e=>e.closure==='yes').length;
+  const sorted = [...evts].sort((a,b)=>{ const o={High:0,Medium:1}; return (o[a.priority]||2)-(o[b.priority]||2)||b.score-a.score; });
+
+  // _c() prevents live-server from detecting closing tags inside this script
+  const _c = t => '</' + t + '>';
+
+  const evtRows = sorted.map((e,i) => [
+    '<div class="eb ' + e.priority.toLowerCase() + '">',
+    '<div class="eh"><span class="en">' + (i+1) + _c('span'),
+    '<div class="eg"><span class="et">' + e.junction + ' \u2014 ' + fmtCause(e.cause) + _c('span'),
+    '<span class="ei">' + e.id + _c('span') + _c('div'),
+    '<span class="eb2 ' + e.priority.toLowerCase() + '">' + e.priority + _c('span') + _c('div'),
+    '<div class="ed">',
+    '<div class="dr"><span class="dk">Corridor' + _c('span') + '<span class="dv">' + e.corridor + _c('span') + _c('div'),
+    '<div class="dr"><span class="dk">Zone' + _c('span') + '<span class="dv">' + (e.zone||'—') + _c('span') + _c('div'),
+    '<div class="dr"><span class="dk">Police Station' + _c('span') + '<span class="dv">' + e.station + ' PS' + _c('span') + _c('div'),
+    '<div class="dr"><span class="dk">Road Closure' + _c('span') + '<span class="dv ' + (e.closure==='yes'?'r':'g') + '">' + e.closure.toUpperCase() + _c('span') + _c('div'),
+    '<div class="dr"><span class="dk">Impact Score' + _c('span') + '<span class="dv">' + e.score + '/100' + _c('span') + _c('div'),
+    '<div class="dr"><span class="dk">Officers Required' + _c('span') + '<span class="dv">' + e.officers + _c('span') + _c('div'),
+    '<div class="dr"><span class="dk">Est. Resolution' + _c('span') + '<span class="dv">' + e.resolution + _c('span') + _c('div'),
+    '<div class="dr"><span class="dk">Date &amp; Time' + _c('span') + '<span class="dv">' + e.datetime + _c('span') + _c('div'),
+    _c('div'),
+    '<div class="ea"><strong>Recommended Action:</strong><br>' + e.action + _c('div'),
+    '<div class="ebl"><strong>Barricade + Divert:</strong> ' + e.barricade + _c('div'),
+    _c('div')
+  ].join(''));
+
+  const css = [
+    '*{box-sizing:border-box;margin:0;padding:0}',
+    'body{font-family:Inter,sans-serif;color:#0D1B2A;background:#F0F2F5}',
+    '.page{max-width:820px;margin:0 auto;background:#fff;min-height:100vh;padding:2.5rem 3rem}',
+    '.hdr{border-bottom:3px solid #1A3C6E;padding-bottom:1.5rem;margin-bottom:1.5rem}',
+    '.logo{font-family:Sora,sans-serif;font-size:1.1rem;font-weight:800;color:#1A3C6E;display:flex;align-items:center;gap:.4rem}',
+    '.ls{color:#E63946}',
+    'h1{font-family:Sora,sans-serif;font-size:1.6rem;font-weight:800;color:#0D1B2A;margin:.6rem 0 .2rem}',
+    '.sub{font-size:.85rem;color:#5C6D7E}',
+    '.mr{display:flex;gap:2rem;margin-top:1rem;flex-wrap:wrap}',
+    '.mi{font-family:"JetBrains Mono",monospace;font-size:.78rem;color:#5C6D7E}',
+    '.mi strong{color:#0D1B2A}',
+    '.sb{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem;background:#F0F2F5;border-radius:8px;padding:1rem}',
+    '.si{text-align:center}',
+    '.sv{font-family:"JetBrains Mono",monospace;font-size:1.5rem;font-weight:700;color:#0D1B2A}',
+    '.sv.r{color:#E63946}.sv.a{color:#B45309}',
+    '.sl{font-size:.72rem;color:#5C6D7E;margin-top:.2rem;text-transform:uppercase;letter-spacing:.06em}',
+    '.st{font-family:Sora,sans-serif;font-size:1rem;font-weight:700;border-left:3px solid #1A3C6E;padding-left:.75rem;margin:1.5rem 0 1rem;color:#0D1B2A}',
+    '.st.r{border-left-color:#E63946}.st.a{border-left-color:#B45309}',
+    '.eb{border:1px solid #D8DEE6;border-radius:8px;padding:1.2rem;margin-bottom:1rem;page-break-inside:avoid}',
+    '.eb.high{border-left:3px solid #E63946}.eb.medium{border-left:3px solid #B45309}',
+    '.eh{display:flex;align-items:flex-start;gap:.8rem;margin-bottom:.8rem}',
+    '.en{font-family:"JetBrains Mono",monospace;font-size:.9rem;font-weight:700;color:#5C6D7E;width:24px;flex-shrink:0}',
+    '.eg{flex:1}.et{font-family:Sora,sans-serif;font-size:.95rem;font-weight:700;color:#0D1B2A;display:block}',
+    '.ei{font-family:"JetBrains Mono",monospace;font-size:.65rem;color:#5C6D7E}',
+    '.eb2{font-family:"JetBrains Mono",monospace;font-size:.65rem;font-weight:700;padding:.2rem .6rem;border-radius:99px;text-transform:uppercase;flex-shrink:0}',
+    '.eb2.high{background:rgba(230,57,70,.12);color:#E63946}.eb2.medium{background:rgba(180,83,9,.12);color:#B45309}',
+    '.ed{display:grid;grid-template-columns:1fr 1fr;gap:.3rem 1.5rem;margin-bottom:.7rem;background:#F7F9FC;border-radius:6px;padding:.75rem}',
+    '.dr{display:flex;justify-content:space-between;padding:.2rem 0;border-bottom:1px solid #E8ECF0}',
+    '.dr:last-child{border-bottom:none}.dk{font-size:.78rem;color:#5C6D7E}',
+    '.dv{font-family:"JetBrains Mono",monospace;font-size:.75rem;color:#0D1B2A;font-weight:500}',
+    '.dv.r{color:#E63946}.dv.g{color:#2A7D4F}',
+    '.ea{font-size:.83rem;color:#0D1B2A;background:#F0F2F5;border-radius:6px;padding:.7rem 1rem;margin-bottom:.5rem;line-height:1.6}',
+    '.ebl{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:#B45309;background:rgba(180,83,9,.06);border:1px solid rgba(180,83,9,.2);border-radius:6px;padding:.5rem .9rem}',
+    '.ft{margin-top:2rem;padding-top:1rem;border-top:1px solid #D8DEE6;font-size:.75rem;color:#5C6D7E;font-family:"JetBrains Mono",monospace}',
+    '@media print{body{background:#fff}}'
+  ].join('');
+
+  const body = [
+    '<div class="page">',
+    '<div class="hdr">',
+    '<div class="logo"><span class="ls">\u25C8</span> TrafficSense</div>',
+    '<h1>Traffic Deployment Plan</h1>',
+    '<div class="sub">AI-Generated Field Deployment Order \u2014 Bengaluru City Police</div>',
+    '<div class="mr">',
+    '<div class="mi"><strong>Generated:</strong> ' + dateStr + '</div>',
+    '<div class="mi"><strong>Prepared by:</strong> ' + email + '</div>',
+    '<div class="mi"><strong>Classification:</strong> OPERATIONAL \u2014 RESTRICTED</div>',
+    _c('div') + _c('div'),
+    '<div class="sb">',
+    '<div class="si"><div class="sv r">' + evts.filter(e=>e.priority==='High').length + _c('div') + '<div class="sl">Critical Events</div>' + _c('div'),
+    '<div class="si"><div class="sv a">' + evts.filter(e=>e.priority==='Medium').length + _c('div') + '<div class="sl">Medium Risk</div>' + _c('div'),
+    '<div class="si"><div class="sv">' + totalOfficers + _c('div') + '<div class="sl">Officers Required</div>' + _c('div'),
+    '<div class="si"><div class="sv r">' + closureCount + _c('div') + '<div class="sl">Road Closures</div>' + _c('div'),
+    _c('div'),
+    evts.filter(e=>e.priority==='High').length ? '<div class="st r">Critical Events (High Priority)</div>' : '',
+    sorted.filter(e=>e.priority==='High').length ? evtRows.split('</div>').filter((_,i,a)=>i<a.length).join(_c('div')) : '',
+    evts.filter(e=>e.priority==='Medium').length ? '<div class="st a">Medium Risk Events</div>' : '',
+    evtRows,
+    '<div class="ft">TrafficSense v2.0 \u00B7 Bengaluru Police Hackathon \u00B7 ' + dateStr + '<br>System-generated. Field officers must assess and adapt per ground conditions.</div>',
+    _c('div')
+  ].join('\n');
+
+  const reportHTML = '<!DOCTYPE html>\n<html lang="en">' +
+    '<head><meta charset="UTF-8"><title>TrafficSense \u2014 Deploy Plan</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Sora:wght@700;800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">' +
+    '<style>' + css + _c('style') + _c('head') +
+    '<body>' + body + _c('body') + _c('html');
+
+  const blob = new Blob([reportHTML], {type:'text/html;charset=utf-8'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = 'TrafficSense_Deploy_' + now.toISOString().slice(0,10) + '.html';
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Deploy plan downloaded');
+}
+
+/* ══════════════════════════════════════════════
+   ALERTS
+══════════════════════════════════════════════ */
+function renderAlerts(){
+  const evts   = loadEvents();
+  const active = evts.filter(e=>e.status==='active');
+  const high   = active.filter(e=>e.priority==='High');
+  const closures= active.filter(e=>e.closure==='yes');
+
+  document.getElementById('alert-kpis').innerHTML = `
+    <div class="stat-card"><div class="sc-label">Critical Alerts</div><div class="sc-value r">${high.length}</div><div class="sc-sub">High priority active</div><div class="sc-bar br"></div></div>
+    <div class="stat-card"><div class="sc-label">Road Closures</div><div class="sc-value a">${86 + closures.length}</div><div class="sc-sub">Barricading in effect</div><div class="sc-bar ba"></div></div>
+    <div class="stat-card"><div class="sc-label">Total Active</div><div class="sc-value b">${active.length}</div><div class="sc-sub">Across all zones</div><div class="sc-bar bb"></div></div>
+  `;
+
+  // Render Citizen Reports
+  const citRpts = JSON.parse(localStorage.getItem('ts_citizen_reports') || '[]');
+  const unverifiedCard = document.getElementById('card-unverified-reports');
+  const unverifiedFeed = document.getElementById('unverified-feed');
+  
+  if (citRpts.length > 0) {
+    unverifiedCard.style.display = 'flex';
+    unverifiedFeed.innerHTML = citRpts.map(r => `
+      <div class="alert-row" style="border-left: 3px solid var(--amber); background: var(--bg);">
+        <div class="alert-body">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
+            <div>
+              <div class="alert-title" style="color:var(--text); font-size:0.9rem;">${r.location} — ${r.cause.toUpperCase()}</div>
+              <div class="alert-meta" style="margin-top:0.2rem;">
+                <span style="color:var(--amber); font-weight:700;">${r.severity} Severity</span> · Zone: ${r.zone} · Blocked: <span style="color:${r.blocked==='yes'?'var(--red)':'inherit'}">${r.blocked.toUpperCase()}</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-size:0.7rem; color:var(--text); font-weight:600;">${r.reporter}</div>
+              <div style="font-family:'JetBrains Mono',monospace; font-size:0.6rem; color:var(--muted);">${new Date(r.timestamp).toLocaleTimeString()}</div>
+            </div>
+          </div>
+          <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.8rem; background:rgba(0,0,0,0.03); padding:0.5rem; border-radius:4px; font-style:italic;">
+            "${r.desc}"
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+            ${r.photoData ? `<button onclick="viewPhoto('${r.id}')" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.75rem; font-weight:600; color:var(--primary); background:rgba(var(--pri-rgb), 0.1); border:none; cursor:pointer;">Check Image</button>` : ''}
+            <button onclick="deleteCitizenReport('${r.id}')" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.75rem; font-weight:600; color:var(--muted); background:var(--bg); border:1px solid var(--border); cursor:pointer;">Dismiss</button>
+            <button onclick="verifyCitizenReport('${r.id}')" style="padding:0.4rem 0.8rem; border-radius:6px; font-size:0.75rem; font-weight:600; color:white; background:var(--amber); border:none; cursor:pointer;">Verify & Convert to Official Event</button>
+          </div>
+        </div>
+      </div>
+    `).join('');
+  } else {
+    unverifiedCard.style.display = 'none';
+  }
+
+  document.getElementById('big-alert-feed').innerHTML = high.length
+    ? high.map(a=>`<div class="alert-row">
+        <div class="alert-bar" style="background:${a.closure==='yes'?'var(--red)':'var(--primary)'}"></div>
+        <div class="alert-body">
+          <div class="alert-title">${a.junction} — ${fmtCause(a.cause)}</div>
+          <div class="alert-meta">${a.id} · ${a.corridor} · ${a.zone} · ${a.station} PS · Score: ${a.score} · Officers: ${a.officers}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:.3rem;align-items:flex-end;flex-shrink:0">
+          ${pillStatus(a.status)}
+          <span style="font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--muted)">${a.closure==='yes'?'CLOSURE':'OPEN'}</span>
+        </div>
+      </div>`).join('')
+    : '<div class="empty"><strong>No active alerts</strong>All events are resolved or Low priority</div>';
+}
+
+/* ══════════════════════════════════════════════
+   ANALYTICS
+══════════════════════════════════════════════ */
+
+function renderReports() {
+  const all = loadEvents();
+  const reported = all.filter(e => e.status === 'resolved' && e.report);
+  
+  const container = document.getElementById('reports-container');
+  if(!container) return;
+  
+  if(reported.length === 0) {
+    container.innerHTML = '<div class="empty"><strong>No Reports Yet</strong>Field officers and traffic controllers have not submitted any formal incident reports.</div>';
+    return;
+  }
+  
+  // Sort newest first
+  reported.sort((a,b) => new Date(b.resolvedAt || b.added) - new Date(a.resolvedAt || a.added));
+  
+  container.innerHTML = reported.map(e => `
+    <div class="card" style="margin-bottom:1.5rem; border-left:4px solid var(--green); box-shadow:0 4px 15px rgba(0,0,0,0.05)">
+      <div class="card-hdr" style="border-bottom:1px solid var(--border); padding-bottom:1rem; margin-bottom:1rem;">
+        <div>
+          <span class="card-title" style="font-size:1.1rem">${e.junction}</span>
+          <span class="card-meta" style="margin-top:0.3rem">${e.id} &bull; ${fmtCause(e.cause)} &bull; ${e.zone}</span>
+        </div>
+        <div style="text-align:right">
+          <span style="background:rgba(42,125,79,0.1);color:var(--green);padding:0.3rem 0.8rem;border-radius:4px;font-weight:700;font-size:0.8rem;letter-spacing:0.05em">RESOLVED</span>
+          <div style="font-size:0.7rem;color:var(--muted);margin-top:0.5rem;font-family:'JetBrains Mono',monospace">${new Date(e.resolvedAt || e.added).toLocaleString()}</div>
+        </div>
+      </div>
+      
+      <div style="display:grid;grid-template-columns:1fr;gap:2rem;">
+        <div style="display:flex;flex-wrap:wrap;gap:2rem;">
+          <div style="flex:1;min-width:300px;">
+            <div style="margin-bottom:1.5rem">
+              <div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Field Notes / Actions Taken</div>
+              <div style="font-size:0.9rem;color:var(--text);line-height:1.6;background:var(--bg);padding:1rem;border-radius:6px;border:1px solid var(--border);white-space:pre-wrap;">${e.report.notes || 'No notes provided.'}</div>
+            </div>
+            
+            <div style="display:flex;gap:2.5rem;margin-bottom:1rem;flex-wrap:wrap">
+              <div>
+                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:0.3rem">Vehicles Involved</div>
+                <div style="font-weight:700;font-size:1.2rem;color:var(--text)">${e.report.vehicles || 0}</div>
+              </div>
+              <div>
+                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:0.3rem">Clearance Status</div>
+                <div style="font-weight:700;font-size:1rem;color:var(--text)">${e.report.statusUpdate || 'Resolved'}</div>
+              </div>
+              <div>
+                <div style="font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:0.3rem">Submitted By</div>
+                <div style="font-weight:700;font-size:1rem;color:var(--primary)">${e.report.submittedBy || 'Traffic Controller'}</div>
+              </div>
+            </div>
+          </div>
+          
+          <div style="width:300px;flex-shrink:0;">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:0.5rem">Proof of Clearance</div>
+            ${e.report.proofPic ? `<img src="${e.report.proofPic}" style="width:100%;height:180px;object-fit:cover;border-radius:6px;border:1px solid var(--border);box-shadow:0 4px 12px rgba(0,0,0,0.1);cursor:pointer;" onclick="window.open(this.src)">` : `<div style="width:100%;height:180px;background:var(--bg);border:1px dashed var(--border);border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:0.8rem">No image uploaded</div>`}
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderAnalytics(){
+  const all = loadEvents();
+  
+  if (!all.length) {
+    const emptyMsg = '<div class="empty"><strong>No events available</strong>Add events to see analytics</div>';
+    document.getElementById('an-cause-bars').innerHTML = emptyMsg;
+    document.getElementById('an-corr-bars').innerHTML = emptyMsg;
+    document.getElementById('an-zone-bars').innerHTML = emptyMsg;
+    document.getElementById('an-live-bars').innerHTML = emptyMsg;
+    return;
+  }
+
+  // 1. Causes
+  const cCounts = {};
+  all.forEach(e => { cCounts[fmtCause(e.cause)] = (cCounts[fmtCause(e.cause)]||0) + 1; });
+  const causes = Object.entries(cCounts).sort((a,b)=>b[1]-a[1]).map(([n,c])=>({n,c,col:'var(--primary)'}));
+  
+  // 2. Corridors
+  const crCounts = {};
+  all.forEach(e => { crCounts[e.corridor||'Unknown'] = (crCounts[e.corridor||'Unknown']||0) + 1; });
+  const corrs = Object.entries(crCounts).sort((a,b)=>b[1]-a[1]).map(([n,c])=>({n,c}));
+  
+  // 3. Zones
+  const zCounts = {};
+  all.forEach(e => { zCounts[e.zone||'Unknown Zone'] = (zCounts[e.zone||'Unknown Zone']||0) + 1; });
+  const zones = Object.entries(zCounts).sort((a,b)=>b[1]-a[1]).map(([n,c])=>({n,c}));
+  
+  // 4. Priorities
+  const pCounts = {};
+  all.forEach(e => { pCounts[e.priority||'Low'] = (pCounts[e.priority||'Low']||0) + 1; });
+  const priorities = Object.entries(pCounts).sort((a,b)=>b[1]-a[1]).map(([n,c])=>({n,c,col:n==='High'?'var(--red)':n==='Medium'?'var(--amber)':'var(--primary)'}));
+
+  renderBars('an-cause-bars', causes, causes[0]?.c||1, i=>i.col);
+  renderBars('an-corr-bars', corrs.slice(0,10), corrs[0]?.c||1, ()=>'var(--primary)');
+  renderBars('an-zone-bars', zones, zones[0]?.c||1, ()=>'var(--primary)');
+  renderBars('an-live-bars', priorities, priorities[0]?.c||1, i=>i.col);
+  
+  // Render Dynamic Chart
+  renderAnalyticsTrendChart(all);
+}
+
+let anTrendChartInst = null;
+function renderAnalyticsTrendChart(all) {
+  const canvas = document.getElementById('analytics-trend-chart');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if(anTrendChartInst) anTrendChartInst.destroy();
+  
+  // Group events by priority
+  const highCount = all.filter(e => e.priority === 'High').length;
+  const medCount = all.filter(e => e.priority === 'Medium').length;
+  const lowCount = all.filter(e => e.priority === 'Low').length;
+  
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1e293b';
+  const gridColor = document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+  anTrendChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['High Priority', 'Medium Priority', 'Low Priority'],
+      datasets: [{
+        label: 'Total Events',
+        data: [highCount, medCount, lowCount],
+        backgroundColor: [
+          'rgba(230, 57, 70, 0.8)',   // Red
+          'rgba(180, 83, 9, 0.8)',    // Amber
+          'rgba(26, 60, 110, 0.8)'    // Primary
+        ],
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { 
+          beginAtZero: true, 
+          ticks: { color: textColor, precision: 0 },
+          grid: { color: gridColor }
+        },
+        x: { 
+          ticks: { color: textColor },
+          grid: { display: false }
+        }
+      }
+    }
+  });
+}
+
+function renderBars(id,items,max,colorFn){
+  const el=document.getElementById(id);if(!el)return;
+  el.innerHTML=items.map(i=>`<div class="bar-row"><span class="bar-label" title="${i.n}">${i.n}</span><div class="bar-track"><div class="bar-fill" style="background:${colorFn(i)};width:${Math.round(i.c/max*100)}%"></div></div><span class="bar-count">${i.c.toLocaleString()}</span></div>`).join('');
+}
+
+let fcChartInst = null;
+let zpChartInst = null;
+
+/* ══════════════════════════════════════════════
+   FORECAST
+══════════════════════════════════════════════ */
+function renderForecast(){
+  const all = loadEvents();
+  const active = all.filter(e=>e.status==='active');
+
+  // Update dynamic card
+  document.getElementById('fc-1h').textContent = active.filter(e=>e.priority==='High').length;
+  
+  // Calculate Top Congestion Cause (from active + resolved to get a good dataset)
+  const causes = {};
+  all.forEach(e=>{ causes[e.cause]=(causes[e.cause]||0)+1; });
+  const topCause = Object.entries(causes).sort((a,b)=>b[1]-a[1])[0];
+  document.getElementById('fc-top-cause').textContent = topCause ? fmtCause(topCause[0]) : 'Heavy Traffic Volume';
+
+  // Basic Cause Risk index
+  const risk=[
+    {n:'Vehicle Breakdown',c:91,col:'var(--red)'},{n:'Accident',c:74,col:'var(--red)'},
+    {n:'Water Logging',c:68,col:'var(--amber)'},{n:'Public Event',c:62,col:'var(--amber)'},
+    {n:'Pot Holes',c:55,col:'var(--primary)'},{n:'Tree Fall',c:48,col:'var(--primary)'}
+  ];
+  renderBars('risk-bars',risk,91,i=>i.col);
+  
+  // RENDER CHART.JS FORECAST
+  renderFcChart(active);
+  renderZpChart(all);
+}
+
+function renderFcChart(activeEvents) {
+  const canvas = document.getElementById('fc-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if(fcChartInst) fcChartInst.destroy();
+  
+  const highCount = activeEvents.filter(e=>e.priority==='High').length;
+  // Generate a realistic curve based on active high priority
+  const dataPoints = [
+    highCount || 2, 
+    Math.max(1, Math.floor((highCount||2)*1.2)),
+    Math.max(1, Math.floor((highCount||2)*0.8)),
+    Math.max(0, Math.floor((highCount||2)*0.4)),
+    0, 1
+  ];
+  
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1e293b';
+  const gridColor = document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+  const primary = 'rgba(56, 114, 250, 1)';
+  const primaryBg = 'rgba(56, 114, 250, 0.2)';
+
+  fcChartInst = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Now→1h', '1h→2h', '2h→3h', '3h→4h', '4h→5h', '5h→6h'],
+      datasets: [{
+        label: 'Forecasted Critical Events',
+        data: dataPoints,
+        borderColor: primary,
+        backgroundColor: primaryBg,
+        borderWidth: 3,
+        pointBackgroundColor: primary,
+        pointRadius: 4,
+        fill: true,
+        tension: 0.4 // beautiful curve
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero:true, grid: { color: gridColor }, ticks: { color: textColor, stepSize: 1 } },
+        x: { grid: { display: false }, ticks: { color: textColor } }
+      }
+    }
+  });
+}
+
+function renderZpChart(allEvents) {
+  const canvas = document.getElementById('zp-canvas');
+  if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if(zpChartInst) zpChartInst.destroy();
+  
+  // Aggregate zones: Active vs Resolved
+  const zStats = {};
+  allEvents.forEach(e => {
+    const z = e.zone || 'Unknown Zone';
+    if (!zStats[z]) zStats[z] = { active: 0, resolved: 0 };
+    if (e.status === 'resolved') zStats[z].resolved++;
+    else if (e.status === 'active') zStats[z].active++;
+  });
+  
+  const sortedZones = Object.keys(zStats).sort((a,b) => (zStats[b].resolved + zStats[b].active) - (zStats[a].resolved + zStats[a].active));
+  
+  const labels = sortedZones;
+  const dataActive = sortedZones.map(z => zStats[z].active);
+  const dataResolved = sortedZones.map(z => zStats[z].resolved);
+  
+  const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1e293b';
+  const gridColor = document.body.classList.contains('dark-mode') ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)';
+
+  zpChartInst = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: 'Resolved Events',
+          data: dataResolved,
+          backgroundColor: 'rgba(42, 125, 79, 0.8)', // green
+          borderRadius: 4
+        },
+        {
+          label: 'Active/Pending Events',
+          data: dataActive,
+          backgroundColor: 'rgba(225, 29, 72, 0.8)', // red
+          borderRadius: 4
+        }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: textColor, font: { family: "'Sora', sans-serif" } } },
+        tooltip: { mode: 'index', intersect: false }
+      },
+      scales: {
+        y: { stacked: true, beginAtZero:true, grid: { color: gridColor }, ticks: { color: textColor, stepSize:1 } },
+        x: { stacked: true, grid: { display: false }, ticks: { color: textColor } }
+      }
+    }
+  });
+}
+
+function showHighRiskEvents() {
+  const all = loadEvents();
+  const highRisk = all.filter(e => e.status === 'active' && e.priority === 'High')
+                      .sort((a,b) => b.score - a.score);
+                      
+  const listEl = document.getElementById('hr-list');
+  
+  if (highRisk.length === 0) {
+    listEl.innerHTML = '<div class="empty"><strong>No Critical Events</strong>Right now there are no high risk events predicted for the next hour.</div>';
+  } else {
+    listEl.innerHTML = highRisk.map(e => `
+      <div style="background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--red);padding:1rem;border-radius:6px;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:0.5rem;">
+          <span style="font-weight:700;color:var(--text);font-size:0.95rem">${e.junction}</span>
+          <span style="background:rgba(var(--red-rgb),0.1);color:var(--red);padding:0.1rem 0.5rem;border-radius:4px;font-size:0.75rem;font-weight:700">Critical (Score: ${e.score})</span>
+        </div>
+        <div style="font-size:0.8rem;color:var(--muted);margin-bottom:0.5rem">
+          <strong>Cause:</strong> ${fmtCause(e.cause)} &nbsp;&bull;&nbsp; <strong>Zone:</strong> ${e.zone}
+        </div>
+        <div style="font-size:0.8rem;color:var(--text);background:rgba(var(--pri-rgb),0.05);padding:0.6rem;border-radius:4px;border:1px solid rgba(var(--pri-rgb),0.2)">
+          <strong>AI Action:</strong> ${e.action}
+        </div>
+      </div>
+    `).join('');
+  }
+  
+  document.getElementById('hr-modal').style.display = 'flex';
+}
+
+
+/* ══════════════════════════════════════════════
+   FORMATTERS & PILLS
+══════════════════════════════════════════════ */
+function fmtCause(c){ return (c||'').replace(/_/g,' ').replace(/\b\w/g,l=>l.toUpperCase()); }
+function pillStatus(s){ const cls=s==='active'?'pa':s==='resolved'?'pr':'pc'; return `<span class="pill ${cls}">${s}</span>`; }
+function pillPriority(p){ const cls=p==='High'?'ph':p==='Medium'?'pm':'pl'; return `<span class="pill ${cls}">${p}</span>`; }
+function pillType(t){ return `<span class="pill ${t==='planned'?'pr':'pm'}">${t}</span>`; }
+function pillClosure(c){ return c==='yes'?`<span class="pill pY">YES</span>`:`<span class="pill pN">NO</span>`; }
+function timeAgo(iso){
+  const s=Math.round((Date.now()-new Date(iso).getTime())/1000);
+  if(s<60) return s+'s ago';
+  if(s<3600) return Math.floor(s/60)+'m ago';
+  return Math.floor(s/3600)+'h ago';
+}
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+/* ══════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════ */
+// Set user info from session
+(function(){
+  const u = sessionStorage.getItem('ts-user');
+  if(u){ try{ const p=JSON.parse(u); document.getElementById('sb-email').textContent=p.email||'admin@trafficsense.in'; }catch(e){} }
+})();
+
+// Pre-fill datetime
+document.getElementById('f-datetime').value = new Date().toISOString().slice(0,16);
+
+// Initial renders
+renderOverview();
+renderAnalytics();
+renderForecast();
+updateBadges();
+</script>
+
+<!-- PROOF MODAL -->
+<div id="admin-proof-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;padding:2rem;">
+  <div style="background:var(--bg);border-radius:12px;padding:1.5rem;max-width:600px;width:100%;box-shadow:0 10px 40px rgba(0,0,0,0.5);position:relative">
+    <button onclick="document.getElementById('admin-proof-modal').style.display='none'" style="position:absolute;top:1rem;right:1rem;background:rgba(0,0,0,0.1);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:1.2rem;display:flex;align-items:center;justify-content:center">&times;</button>
+    <div style="font-size:1.2rem;font-weight:700;margin-bottom:0.5rem;color:var(--text)">Resolution Proof</div>
+    <div id="admin-proof-title" style="font-size:0.85rem;color:var(--muted);margin-bottom:1.5rem;font-family:'JetBrains Mono',monospace"></div>
+    <div style="background:var(--body);border:1px solid var(--border);border-radius:8px;padding:0.5rem;text-align:center">
+      <img id="admin-proof-img" src="" style="max-width:100%;border-radius:4px;max-height:60vh;object-fit:contain">
+    </div>
+  </div>
+</div>
+
+<script>
+
+function showProof(id) {
+  const e = loadEvents().find(ev=>ev.id===id);
+  if(!e || !e.proofPic) return;
+  document.getElementById('admin-proof-title').textContent = e.id + ' · ' + fmtCause(e.cause) + ' at ' + e.junction;
+  document.getElementById('admin-proof-img').src = e.proofPic;
+  document.getElementById('admin-proof-modal').style.display = 'flex';
+}
+
+</script>
+<!-- HIGH RISK MODAL -->
+<div id="hr-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+  <div class="card" style="width:90%;max-width:550px;max-height:85vh;display:flex;flex-direction:column;box-shadow:0 20px 40px rgba(0,0,0,0.5);">
+    <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.5rem;border-bottom:1px solid var(--border)">
+      <span class="card-title" style="color:var(--red);display:flex;align-items:center;gap:0.5rem">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        Critical Events (Next 1h)
+      </span>
+      <button onclick="document.getElementById('hr-modal').style.display='none'" style="background:none;border:none;font-size:1.8rem;cursor:pointer;color:var(--text);line-height:1">&times;</button>
+    </div>
+    <div id="hr-list" style="padding:1.5rem;overflow-y:auto;display:flex;flex-direction:column;gap:1rem;"></div>
+  </div>
+</div>
+<script>
+// ── CITIZEN REPORT VERIFICATION ─────────────────────────
+window.viewPhoto = function(id) {
+  const rpts = JSON.parse(localStorage.getItem('ts_citizen_reports') || '[]');
+  const rpt = rpts.find(r => r.id === id);
+  if (rpt && rpt.photoData) {
+    const win = window.open();
+    win.document.write(`<img src="${rpt.photoData}" style="max-width:100%; max-height:100vh; display:block; margin:auto;" />`);
+  }
+};
+
+window.deleteCitizenReport = function(id) {
+  let rpts = JSON.parse(localStorage.getItem('ts_citizen_reports') || '[]');
+  rpts = rpts.filter(r => r.id !== id);
+  localStorage.setItem('ts_citizen_reports', JSON.stringify(rpts));
+  renderAlerts(); // re-render
+}
+
+window.verifyCitizenReport = function(id) {
+  let rpts = JSON.parse(localStorage.getItem('ts_citizen_reports') || '[]');
+  const rpt = rpts.find(r => r.id === id);
+  if (!rpt) return;
+  
+  // Create official event
+  const officialId = 'EV-' + Math.random().toString(36).substr(2, 4).toUpperCase();
+  const priorityMap = { 'Severe': 'High', 'Moderate': 'Medium', 'Minor': 'Low' };
+  const baseScore = { 'High': 85, 'Medium': 55, 'Low': 25 }[priorityMap[rpt.severity]] || 50;
+  
+  const officialEvt = {
+    id: officialId,
+    junction: rpt.location,
+    corridor: 'Citizen Reported',
+    zone: rpt.zone,
+    station: 'Traffic Control',
+    cause: rpt.cause,
+    status: 'active',
+    priority: priorityMap[rpt.severity] || 'Medium',
+    score: baseScore + (rpt.blocked === 'yes' ? 15 : 0),
+    officers: rpt.severity === 'Severe' ? 4 : (rpt.severity === 'Moderate' ? 2 : 1),
+    closure: rpt.blocked,
+    added: new Date().toISOString(),
+    resolution: rpt.severity === 'Severe' ? '120 mins' : '45 mins',
+    type: 'public_report',
+    reporter_desc: rpt.desc
+  };
+  
+  const evts = loadEvents();
+  evts.push(officialEvt);
+  saveEvents(evts);
+  
+  // Remove from unverified
+  rpts = rpts.filter(r => r.id !== id);
+  localStorage.setItem('ts_citizen_reports', JSON.stringify(rpts));
+  
+  showToast(`Citizen report verified! Created official event ${officialId}`);
+  renderAlerts();
+  
+  if (typeof renderOverview === 'function') renderOverview();
+  if (typeof renderEvents === 'function') renderEvents();
+}
+</script>
+</body>
+</html>

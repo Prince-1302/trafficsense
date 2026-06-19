@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="day">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Live Traffic Map — Bengaluru | TrafficSense</title>
+  <meta name="description" content="Live traffic incident map for Bengaluru. View active road closures, diversions and zone-wise traffic status in real-time."/>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <style>
+    :root {
+      --bg:#F0F2F5; --surface:#FFFFFF; --primary:#1A3C6E; --pri-rgb:26,60,110;
+      --red:#E63946; --red-rgb:230,57,70; --text:#0D1B2A; --muted:#5C6D7E;
+      --border:#D8DEE6; --topbar-bg:rgba(255,255,255,0.97);
+      --shadow:0 2px 12px rgba(0,0,0,0.08); --green:#2A7D4F; --amber:#B45309;
+      --card-bg:#FFFFFF; --sb-bg:#FFFFFF;
+    }
+    [data-theme="night"] {
+      --bg:#0B0F1A; --surface:#131929; --primary:#4A90E2; --pri-rgb:74,144,226;
+      --red:#FF4D5A; --red-rgb:255,77,90; --text:#E8EDF5; --muted:#6B7A90;
+      --border:#1E2A3E; --topbar-bg:rgba(11,15,26,0.97);
+      --shadow:0 2px 12px rgba(0,0,0,0.4); --green:#3DB870; --amber:#D97706;
+      --card-bg:#131929; --sb-bg:#0F1620;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { font-size: 15px; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); transition: background .35s, color .35s; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+    button { font-family: inherit; cursor: pointer; border: none; background: none; }
+
+    /* ── TOPBAR ─────────────────────────────── */
+    #topbar {
+      flex-shrink: 0; height: 58px;
+      background: var(--topbar-bg); border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(14px);
+      display: flex; align-items: center; padding: 0 1.4rem; gap: 1rem;
+      z-index: 500; transition: background .35s, border-color .35s;
+    }
+    .tb-logo { display: flex; align-items: center; gap: .4rem; }
+    .tb-logo-sym { color: var(--red); font-size: 1.1rem; font-weight: 700; }
+    .tb-logo-text { font-family: 'Sora', sans-serif; font-weight: 700; font-size: .9rem; color: var(--primary); }
+    .tb-sep { width: 1px; height: 26px; background: var(--border); flex-shrink: 0; }
+    .live-badge { display: flex; align-items: center; gap: .4rem; font-family: 'JetBrains Mono', monospace; font-size: .65rem; font-weight: 700; letter-spacing: .08em; color: var(--red); }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--red); box-shadow: 0 0 6px var(--red); animation: pulseDot 1.6s infinite; }
+    @keyframes pulseDot { 0%,100%{opacity:1}50%{opacity:.25} }
+    #live-clock { font-family: 'JetBrains Mono', monospace; font-size: .82rem; color: var(--muted); }
+    .stat-pill { display: inline-flex; align-items: center; gap: .4rem; background: var(--surface); border: 1px solid var(--border); border-radius: 999px; padding: .28rem .8rem; font-family: 'JetBrains Mono', monospace; font-size: .66rem; font-weight: 600; color: var(--text); }
+    .stat-dot { width: 7px; height: 7px; border-radius: 50%; }
+    .tb-right { margin-left: auto; display: flex; align-items: center; gap: .8rem; }
+    #theme-toggle { display: flex; align-items: center; gap: .4rem; background: var(--surface); border: 1.5px solid var(--border); border-radius: 999px; padding: .28rem .8rem; font-size: .75rem; font-weight: 500; color: var(--muted); transition: all .3s; }
+    #theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
+    .ti-wrap { position: relative; width: 15px; height: 15px; }
+    .ti-sun, .ti-moon { position: absolute; width: 15px; height: 15px; stroke: currentColor; transition: opacity .3s, transform .3s; }
+    [data-theme="day"] .ti-moon { opacity: 0; transform: rotate(90deg) scale(.6); }
+    [data-theme="day"] .ti-sun { opacity: 1; }
+    [data-theme="night"] .ti-sun { opacity: 0; transform: rotate(-90deg) scale(.6); }
+    [data-theme="night"] .ti-moon { opacity: 1; }
+    .tl-d { display: inline; } .tl-n { display: none; }
+    [data-theme="night"] .tl-d { display: none; } [data-theme="night"] .tl-n { display: inline; }
+    .btn-back { display: flex; align-items: center; gap: .4rem; background: var(--primary); color: #fff; border-radius: 7px; padding: .38rem 1rem; font-size: .78rem; font-weight: 600; transition: opacity .2s; }
+    .btn-back:hover { opacity: .85; }
+
+    /* ── MAIN LAYOUT ────────────────────────── */
+    #app { display: flex; flex: 1; overflow: hidden; }
+
+    /* ── LEFT SIDEBAR ────────────────────────  */
+    #sidebar {
+      width: 280px; flex-shrink: 0;
+      background: var(--sb-bg); border-right: 1px solid var(--border);
+      display: flex; flex-direction: column; overflow: hidden;
+      transition: background .35s, border-color .35s;
+    }
+    .sb-header { padding: 1rem 1.2rem .7rem; border-bottom: 1px solid var(--border); }
+    .sb-title { font-family: 'Sora', sans-serif; font-size: .88rem; font-weight: 700; color: var(--text); }
+    .sb-sub { font-family: 'JetBrains Mono', monospace; font-size: .6rem; color: var(--muted); margin-top: .2rem; }
+
+    /* Filter tabs */
+    .filter-row { display: flex; gap: .3rem; padding: .6rem .9rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .ft { font-family: 'JetBrains Mono', monospace; font-size: .6rem; font-weight: 600; padding: .25rem .6rem; border-radius: 4px; color: var(--muted); cursor: pointer; transition: all .2s; border: 1px solid transparent; }
+    .ft:hover { background: rgba(var(--pri-rgb),.08); color: var(--primary); }
+    .ft.active { background: var(--primary); color: #fff; }
+    .ft.red { border-color: var(--red); color: var(--red); }
+    .ft.red.active { background: var(--red); color: #fff; }
+    .ft.amber { border-color: var(--amber); color: var(--amber); }
+    .ft.amber.active { background: var(--amber); color: #fff; }
+
+    /* Zone list */
+    .zone-list { flex: 1; overflow-y: auto; padding: .6rem; display: flex; flex-direction: column; gap: .4rem; }
+    .zone-list::-webkit-scrollbar { width: 4px; }
+    .zone-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+    .zone-btn {
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px;
+      padding: .65rem .9rem; cursor: pointer; text-align: left; transition: all .22s;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .zone-btn:hover { border-color: var(--primary); transform: translateX(2px); }
+    .zone-btn.active { border-color: var(--primary); background: rgba(var(--pri-rgb),.06); }
+    .zb-name { font-weight: 600; font-size: .82rem; color: var(--text); }
+    .zb-meta { font-family: 'JetBrains Mono', monospace; font-size: .6rem; color: var(--muted); margin-top: .15rem; }
+    .zb-count { font-family: 'JetBrains Mono', monospace; font-size: .68rem; font-weight: 700; padding: .15rem .5rem; border-radius: 99px; }
+    .zb-high { background: rgba(var(--red-rgb),.1); color: var(--red); }
+    .zb-med { background: rgba(180,83,9,.1); color: var(--amber); }
+    .zb-low { background: rgba(var(--pri-rgb),.1); color: var(--primary); }
+    .zb-none { background: rgba(92,109,126,.1); color: var(--muted); }
+
+    /* Event list in sidebar */
+    .ev-list { flex: 1; overflow-y: auto; padding: .5rem; display: flex; flex-direction: column; gap: .35rem; }
+    .ev-card {
+      background: var(--bg); border: 1.5px solid var(--border); border-radius: 7px;
+      padding: .6rem .85rem; cursor: pointer; transition: all .2s;
+      border-left: 3px solid var(--border);
+    }
+    .ev-card:hover { border-color: var(--primary); transform: translateX(2px); }
+    .ev-card.ev-high { border-left-color: var(--red); }
+    .ev-card.ev-med { border-left-color: var(--amber); }
+    .ev-card.ev-low { border-left-color: var(--primary); }
+    .ev-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: .25rem; }
+    .ev-name { font-weight: 600; font-size: .8rem; color: var(--text); }
+    .ev-badge { font-family: 'JetBrains Mono', monospace; font-size: .56rem; font-weight: 700; padding: .12rem .45rem; border-radius: 99px; text-transform: uppercase; }
+    .eb-h { background: rgba(var(--red-rgb),.1); color: var(--red); }
+    .eb-m { background: rgba(180,83,9,.1); color: var(--amber); }
+    .eb-l { background: rgba(var(--pri-rgb),.1); color: var(--primary); }
+    .ev-meta { font-family: 'JetBrains Mono', monospace; font-size: .6rem; color: var(--muted); line-height: 1.5; }
+    .ev-closure { color: var(--red); font-weight: 700; font-size: .58rem; margin-top: .2rem; }
+
+    /* All zones view */
+    #panel-all { display: flex; flex-direction: column; overflow: hidden; flex: 1; }
+    #panel-zone { display: none; flex-direction: column; overflow: hidden; flex: 1; }
+    .panel-back { display: flex; align-items: center; gap: .4rem; padding: .7rem 1rem; border-bottom: 1px solid var(--border); font-size: .8rem; font-weight: 600; color: var(--primary); cursor: pointer; }
+    .panel-back:hover { color: var(--red); }
+    .panel-zone-hdr { padding: .8rem 1rem .5rem; }
+    .panel-zone-name { font-family: 'Sora', sans-serif; font-weight: 700; font-size: .95rem; color: var(--text); }
+    .panel-zone-sub { font-family: 'JetBrains Mono', monospace; font-size: .6rem; color: var(--muted); margin-top: .15rem; }
+
+    /* Empty state */
+    .empty { text-align: center; padding: 2.5rem 1rem; color: var(--muted); font-size: .82rem; }
+    .empty strong { display: block; font-family: 'Sora', sans-serif; font-size: .95rem; color: var(--text); margin-bottom: .3rem; }
+
+    /* Legend */
+    .legend { padding: .7rem 1rem; border-top: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: .5rem; background: var(--sb-bg); }
+    .leg-item { display: flex; align-items: center; gap: .35rem; font-family: 'JetBrains Mono', monospace; font-size: .58rem; color: var(--muted); }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 2px solid white; box-shadow: 0 1px 4px rgba(0,0,0,.2); }
+
+    /* ── MAP ─────────────────────────────────── */
+    #map-container { flex: 1; position: relative; }
+    #leaflet-map { width: 100%; height: 100%; z-index: 1; }
+
+    /* Leaflet popup custom style */
+    .lf-popup .leaflet-popup-content-wrapper {
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,.18);
+      padding: 0; overflow: hidden;
+    }
+    .lf-popup .leaflet-popup-tip { background: var(--card-bg); }
+    .lf-popup .leaflet-popup-content { margin: 0; min-width: 260px; }
+    .popup-hdr { display: flex; align-items: flex-start; justify-content: space-between; gap: .8rem; padding: .9rem 1rem .6rem; background: linear-gradient(135deg, rgba(var(--pri-rgb),.04), transparent); border-bottom: 1px solid var(--border); }
+    .popup-junc { font-family: 'Sora', sans-serif; font-size: .9rem; font-weight: 700; color: var(--text); }
+    .popup-body { padding: .7rem 1rem .9rem; }
+    .popup-row { display: flex; justify-content: space-between; padding: .3rem 0; border-bottom: 1px solid var(--border); font-size: .78rem; }
+    .popup-row:last-child { border-bottom: none; }
+    .popup-key { color: var(--muted); }
+    .popup-val { font-family: 'JetBrains Mono', monospace; font-size: .72rem; color: var(--text); font-weight: 600; text-align: right; max-width: 60%; }
+    .popup-diversion { margin-top: .6rem; background: rgba(var(--pri-rgb),.06); border: 1px solid rgba(var(--pri-rgb),.15); border-radius: 6px; padding: .6rem .8rem; }
+    .popup-div-label { font-family: 'JetBrains Mono', monospace; font-size: .58rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--primary); margin-bottom: .3rem; }
+    .popup-div-text { font-size: .76rem; color: var(--text); line-height: 1.5; }
+    .popup-closure { display: inline-flex; align-items: center; gap: .3rem; background: rgba(var(--red-rgb),.1); color: var(--red); border-radius: 4px; padding: .2rem .5rem; font-family: 'JetBrains Mono', monospace; font-size: .6rem; font-weight: 700; margin-top: .5rem; }
+  </style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="tb-logo">
+    <span class="tb-logo-sym">◈</span>
+    <span class="tb-logo-text">TrafficSense</span>
+  </div>
+  <div class="tb-sep"></div>
+  <div class="stat-pill"><span class="stat-dot" style="background:var(--red)"></span><span id="stat-active">0 Active</span></div>
+  <div class="stat-pill"><span class="stat-dot" style="background:var(--amber)"></span><span id="stat-closure">0 Closures</span></div>
+    <div class="stat-pill"><span class="stat-dot" style="background:var(--primary)"></span>12 Zones</div>
+  <button class="stat-pill" style="cursor:pointer; background:var(--primary); color:white; border-color:var(--primary);" onclick="openImpactModal()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    Check Impact Score
+  </button>
+  <button class="stat-pill" style="cursor:pointer; background:var(--amber); color:white; border-color:var(--amber); margin-left: 0.5rem;" onclick="openReportModal()">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+    Citizen Reporting
+  </button>
+
+  <div class="tb-right">
+    <div class="live-badge" style="margin-right:1rem;"><span class="live-dot"></span>LIVE MAP</div>
+    <div id="live-clock" style="margin-right:1rem;">--:--:--</div>
+    <div class="tb-sep" style="margin-right:0.5rem;"></div>
+    <button id="theme-toggle" aria-label="Toggle theme">
+      <div class="ti-wrap" aria-hidden="true">
+        <svg class="ti-sun" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <svg class="ti-moon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      </div>
+      <span class="tl-d">Day</span><span class="tl-n">Night</span>
+    </button>
+    <button class="btn-back" onclick="window.location.href='index.html'">← Log out</button>
+  </div>
+</div>
+
+<!-- APP BODY -->
+<div id="app">
+
+  <!-- LEFT SIDEBAR -->
+  <div id="sidebar">
+    <div class="sb-header">
+      <div class="sb-title">Bengaluru Traffic Zones</div>
+      <div class="sb-sub" id="sb-sub-text">Click a zone to focus map · Hover events for details</div>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-row">
+      <button class="ft active" onclick="setFilter('all',this)">All</button>
+      <button class="ft red" onclick="setFilter('high',this)">High</button>
+      <button class="ft amber" onclick="setFilter('closure',this)">Closures</button>
+      <button class="ft" onclick="setFilter('medium',this)">Medium</button>
+    </div>
+
+    <!-- ALL ZONES panel -->
+    <div id="panel-all">
+      <div class="zone-list" id="zone-list"></div>
+      <div class="legend">
+        <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>High Priority</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>Medium</div>
+        <div class="leg-item"><div class="leg-dot" style="background:var(--primary)"></div>Low</div>
+        <div class="leg-item"><div class="leg-dot" style="background:#7B2D8B"></div>Road Closed</div>
+      </div>
+    </div>
+
+    <!-- ZONE DETAIL panel -->
+    <div id="panel-zone">
+      <div class="panel-back" onclick="showAllZones()">← All Zones</div>
+      <div class="panel-zone-hdr">
+        <div class="panel-zone-name" id="zone-panel-name">Zone</div>
+        <div class="panel-zone-sub" id="zone-panel-sub">0 active events</div>
+      </div>
+      <div class="ev-list" id="ev-list"></div>
+    </div>
+  </div>
+
+  <!-- MAP -->
+  <div id="map-container">
+    <div id="leaflet-map"></div>
+  </div>
+
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ── THEME ──────────────────────────────────────────────
+const html = document.documentElement;
+const theme = sessionStorage.getItem('ts-theme') || localStorage.getItem('ts-theme') || 'day';
+html.setAttribute('data-theme', theme);
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const next = html.getAttribute('data-theme') === 'day' ? 'night' : 'day';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('ts-theme', next);
+  sessionStorage.setItem('ts-theme', next);
+  if (pubMap) setTimeout(() => pubMap.invalidateSize(), 100);
+});
+
+// ── CLOCK ──────────────────────────────────────────────
+function tickClock() {
+  const now = new Date();
+  document.getElementById('live-clock').textContent = now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const dt = document.getElementById('live-date');
+  if(dt) dt.textContent = now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+}
+tickClock(); setInterval(tickClock, 1000);
+
+// ── DATA ───────────────────────────────────────────────
+function loadEvents() {
+  const raw = localStorage.getItem('ts_events_v3');
+  return raw ? JSON.parse(raw) : [];
+}
+const fmtCause = c => c.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+
+// ── ZONE DEFINITIONS ──────────────────────────────────
+const ZONES = [
+  { id:'north1', name:'North Zone 1', center:[13.03, 77.52], zoom:13, corridors:['Tumkur Road','Bellary Road 1','ORR North 1'] },
+  { id:'north2', name:'North Zone 2', center:[13.07, 77.60], zoom:13, corridors:['Bellary Road 2','ORR North 2','NH 44'] },
+  { id:'south1', name:'South Zone 1', center:[12.90, 77.58], zoom:13, corridors:['Bannerghatta Road','Kanakapura Road','ORR South'] },
+  { id:'south2', name:'South Zone 2', center:[12.91, 77.62], zoom:13, corridors:['Hosur Road'] },
+  { id:'east1',  name:'East Zone 1',  center:[12.95, 77.69], zoom:13, corridors:['ORR East 1','Old Madras Road','Sarjapur Road'] },
+  { id:'east2',  name:'East Zone 2',  center:[13.00, 77.73], zoom:13, corridors:['ORR East 2','Hennuru Road'] },
+  { id:'west1',  name:'West Zone 1',  center:[12.96, 77.50], zoom:13, corridors:['Mysore Road','Magadi Road'] },
+  { id:'west2',  name:'West Zone 2',  center:[12.92, 77.48], zoom:13, corridors:['NICE Road'] },
+  { id:'cent1',  name:'Central Zone 1', center:[12.97, 77.60], zoom:14, corridors:['Non-corridor'] },
+  { id:'cent2',  name:'Central Zone 2', center:[12.97, 77.59], zoom:14, corridors:[] },
+  { id:'ne1',    name:'Northeast Zone 1', center:[13.05, 77.65], zoom:13, corridors:[] },
+  { id:'sw1',    name:'Southwest Zone 1', center:[12.88, 77.55], zoom:13, corridors:[] },
+];
+
+// ── JUNCTION COORDINATES ──────────────────────────────
+const BLR_JUNCTIONS = [
+  { name:'KR Circle',           lat:12.9716, lng:77.5946 },
+  { name:'Silk Board Junction', lat:12.9176, lng:77.6227 },
+  { name:'Hebbal Flyover',      lat:13.0350, lng:77.5970 },
+  { name:'Marathahalli Bridge', lat:12.9563, lng:77.7010 },
+  { name:'Bannerghatta Road',   lat:12.9024, lng:77.5979 },
+  { name:'Koramangala Signal',  lat:12.9354, lng:77.6244 },
+  { name:'Whitefield Main',     lat:12.9698, lng:77.7499 },
+  { name:'Yeshwanthpur',        lat:13.0295, lng:77.5414 },
+  { name:'Jayanagar 4th Block', lat:12.9299, lng:77.5851 },
+  { name:'Yelahanka',           lat:13.1009, lng:77.5963 },
+  { name:'Rajajinagar',         lat:13.0125, lng:77.5511 },
+  { name:'Mysuru Road Junction',lat:12.9599, lng:77.5038 },
+  { name:'Bellandur Junction',  lat:12.9344, lng:77.6748 },
+  { name:'Electronic City',     lat:12.8456, lng:77.6603 },
+  { name:'Indiranagar 100ft',   lat:12.9784, lng:77.6408 },
+  { name:'MG Road Junction',    lat:12.9752, lng:77.6069 },
+  { name:'BTM Layout',          lat:12.9166, lng:77.6101 },
+  { name:'Domlur Flyover',      lat:12.9622, lng:77.6401 },
+  { name:'Nagawara Junction',   lat:13.0463, lng:77.6110 },
+  { name:'Sarjapur Road',       lat:12.9103, lng:77.6858 },
+  { name:'JP Nagar',            lat:12.9049, lng:77.5849 },
+  { name:'HSR Layout',          lat:12.9116, lng:77.6473 },
+  { name:'Kengeri Signal',      lat:12.9096, lng:77.4879 },
+  { name:'Peenya Junction',     lat:13.0275, lng:77.5234 },
+  { name:'Residency Road',      lat:12.9721, lng:77.6006 },
+];
+function getCoords(e) {
+  // If we pass just an ID (for backward compatibility), fallback to hash
+  const eventId = typeof e === 'string' ? e : e.id;
+  const junctionName = typeof e === 'object' ? e.junction : null;
+  
+  if (junctionName) {
+    const found = BLR_JUNCTIONS.find(j => j.name === junctionName);
+    if (found) return found;
+  }
+  
+  let hash = 0;
+  for (let i = 0; i < eventId.length; i++) hash = Math.imul(31, hash) + eventId.charCodeAt(i) | 0;
+  return BLR_JUNCTIONS[Math.abs(hash) % BLR_JUNCTIONS.length];
+}
+
+// ── DIVERSION ROUTES ─────────────────────────────────
+function getDiversion(e) {
+  if (e.diversion) return e.diversion;
+  const divMap = {
+    'Tumkur Road': 'Via Peenya Industrial Area → NICE Road (+2.3 km)',
+    'Bellary Road 1': 'Via Hebbal → Outer Ring Road North (+1.8 km)',
+    'Bellary Road 2': 'Via NH 44 Alternate → Yelahanka (+2.1 km)',
+    'Hosur Road': 'Via BTM Layout → Outer Ring Road (+3.1 km)',
+    'Old Madras Road': 'Via NH 648 → Whitefield Road (+1.8 km)',
+    'Mysore Road': 'Via NICE Road → Kengeri Alternate (+2.5 km)',
+    'Bannerghatta Road': 'Via JP Nagar → Kanakapura Road (+1.9 km)',
+    'ORR East 1': 'Via ITPL Main Road → Marathahalli Bridge (+1.2 km)',
+    'Non-corridor': 'Via Residency Road → Museum Road',
+  };
+  return divMap[e.corridor] || 'Use alternate routes as directed by field officers. Check local signage.';
+}
+
+// ── MAP ───────────────────────────────────────────────
+let pubMap = null;
+let allMarkers = [];
+let currentFilter = 'all';
+
+function initMap() {
+  if (pubMap) return;
+  pubMap = L.map('leaflet-map', {
+    center: [12.9716, 77.5946],
+    zoom: 12,
+    zoomControl: true,
+  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19
+  }).addTo(pubMap);
+  setTimeout(() => pubMap.invalidateSize(true), 100);
+  setTimeout(() => pubMap.invalidateSize(true), 500);
+  if (window.ResizeObserver) {
+    new ResizeObserver(() => pubMap && pubMap.invalidateSize(true))
+      .observe(document.getElementById('leaflet-map'));
+  }
+}
+
+function markerColor(e) {
+  if (e.closure === 'yes') return '#7B2D8B'; // Purple for closure
+  if (e.priority === 'High') return '#E63946';
+  if (e.priority === 'Medium') return '#B45309';
+  return '#1A3C6E';
+}
+
+function buildMarkerIcon(e) {
+  const color = markerColor(e);
+  const isClosed = e.closure === 'yes';
+  const pulse = (e.priority === 'High' || isClosed) ? `
+    <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+      width:38px;height:38px;border-radius:50%;background:${color};opacity:0.25;
+      animation:pulseDot 1.5s infinite;z-index:-1;"></div>` : '';
+  const letter = isClosed ? '✕' : (e.priority === 'High' ? 'H' : e.priority === 'Medium' ? 'M' : 'L');
+  const html = `
+    <div style="position:relative;width:26px;height:26px;cursor:pointer;">
+      ${pulse}
+      <div style="width:26px;height:26px;border-radius:50%;background:${color};
+        border:3px solid white;box-shadow:0 2px 10px rgba(0,0,0,0.35);
+        display:flex;align-items:center;justify-content:center;">
+        <span style="color:white;font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;">${letter}</span>
+      </div>
+    </div>`;
+  return L.divIcon({ html, className: '', iconSize: [26, 26], iconAnchor: [13, 13] });
+}
+
+function buildPopupHTML(e) {
+  const color = markerColor(e);
+  const divText = getDiversion(e);
+  const priorityLabel = e.closure === 'yes' ? 'ROAD CLOSED' : e.priority.toUpperCase();
+  return `
+    <div class="popup-hdr">
+      <div>
+        <div class="popup-junc">${e.junction}</div>
+        <div style="font-size:0.63rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-top:3px;">${e.id} · ${e.corridor || '—'}</div>
+      </div>
+      <span style="background:${color}22;color:${color};font-family:'JetBrains Mono',monospace;font-size:0.58rem;font-weight:700;padding:0.2rem 0.6rem;border-radius:999px;border:1px solid ${color};white-space:nowrap;">${priorityLabel}</span>
+    </div>
+    <div class="popup-body">
+      <div class="popup-row"><span class="popup-key">Cause</span><span class="popup-val">${fmtCause(e.cause)}</span></div>
+      <div class="popup-row"><span class="popup-key">Zone</span><span class="popup-val">${e.zone || '—'}</span></div>
+      <div class="popup-row"><span class="popup-key">Station</span><span class="popup-val">${e.station || '—'} PS</span></div>
+      <div class="popup-row"><span class="popup-key">Type</span><span class="popup-val">${e.type ? e.type.charAt(0).toUpperCase()+e.type.slice(1) : '—'}</span></div>
+      ${e.closure === 'yes' ? `<div class="popup-closure">⚠ Road Closure Active — Barricading in effect</div>` : ''}
+      <div class="popup-diversion">
+        <div class="popup-div-label">🔀 Suggested Diversion Route</div>
+        <div class="popup-div-text">${divText}</div>
+      </div>
+    </div>`;
+}
+
+function renderMap() {
+  initMap();
+  allMarkers.forEach(m => pubMap.removeLayer(m));
+  allMarkers = [];
+
+  const all = loadEvents();
+  const active = all.filter(e => e.status === 'active');
+  let filtered = active;
+  if (currentFilter === 'high') filtered = active.filter(e => e.priority === 'High');
+  else if (currentFilter === 'medium') filtered = active.filter(e => e.priority === 'Medium');
+  else if (currentFilter === 'closure') filtered = active.filter(e => e.closure === 'yes');
+
+  // Update topbar stats
+  document.getElementById('stat-active').textContent = active.length + ' Active';
+  document.getElementById('stat-closure').textContent = active.filter(e => e.closure === 'yes').length + ' Closures';
+
+  filtered.forEach(e => {
+    const coords = getCoords(e);
+    const marker = L.marker([coords.lat, coords.lng], { icon: buildMarkerIcon(e) }).addTo(pubMap);
+    marker.bindPopup(buildPopupHTML(e), { className: 'lf-popup', maxWidth: 300, minWidth: 270 });
+    allMarkers.push(marker);
+    marker._evData = e;
+  });
+
+  renderZoneList(active);
+}
+
+// ── ZONE LIST ─────────────────────────────────────────
+function renderZoneList(activeEvents) {
+  const container = document.getElementById('zone-list');
+  if (!container) return;
+
+  const zoneData = ZONES.map(z => {
+    const evs = activeEvents.filter(e => e.zone === z.name);
+    const high = evs.filter(e => e.priority === 'High').length;
+    const med  = evs.filter(e => e.priority === 'Medium').length;
+    const low  = evs.filter(e => e.priority === 'Low').length;
+    const topBadgeClass = high > 0 ? 'zb-high' : med > 0 ? 'zb-med' : low > 0 ? 'zb-low' : 'zb-none';
+    const topCount = high > 0 ? high : med > 0 ? med : low;
+    return { ...z, evs, high, med, low, topBadgeClass, topCount };
+  });
+
+  container.innerHTML = zoneData.map(z => `
+    <button class="zone-btn" onclick="focusZone('${z.id}')" id="zbtn-${z.id}">
+      <div>
+        <div class="zb-name">${z.name}</div>
+        <div class="zb-meta">${z.evs.length} active event${z.evs.length !== 1 ? 's' : ''}</div>
+      </div>
+      <span class="zb-count ${z.topBadgeClass}">${z.evs.length}</span>
+    </button>
+  `).join('');
+}
+
+// ── ZONE FOCUS ────────────────────────────────────────
+function focusZone(zoneId) {
+  const z = ZONES.find(z => z.id === zoneId);
+  if (!z || !pubMap) return;
+
+  // Fly map to zone
+  pubMap.flyTo(z.center, z.zoom, { animate: true, duration: 0.8 });
+
+  // Highlight button
+  document.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
+  const btn = document.getElementById('zbtn-' + zoneId);
+  if (btn) btn.classList.add('active');
+
+  // Show zone event panel
+  const all = loadEvents();
+  const zoneEvents = all.filter(e => e.status === 'active' && e.zone === z.name);
+  showZonePanel(z, zoneEvents);
+}
+
+function showZonePanel(z, events) {
+  document.getElementById('panel-all').style.display = 'none';
+  const pz = document.getElementById('panel-zone');
+  pz.style.display = 'flex';
+
+  document.getElementById('zone-panel-name').textContent = z.name;
+  document.getElementById('zone-panel-sub').textContent = events.length + ' active event' + (events.length !== 1 ? 's' : '');
+
+  const list = document.getElementById('ev-list');
+  if (!events.length) {
+    list.innerHTML = '<div class="empty"><strong>All Clear</strong>No active incidents in this zone.</div>';
+    return;
+  }
+
+  const sorted = [...events].sort((a,b) => {
+    const p = { High:0, Medium:1, Low:2 };
+    return (p[a.priority]||3) - (p[b.priority]||3);
+  });
+
+  list.innerHTML = sorted.map(e => {
+    const cls = e.priority === 'High' ? 'ev-high' : e.priority === 'Medium' ? 'ev-med' : 'ev-low';
+    const badge = e.priority === 'High' ? 'eb-h' : e.priority === 'Medium' ? 'eb-m' : 'eb-l';
+    const divText = getDiversion(e);
+    return `
+      <div class="ev-card ${cls}" onclick="openEventOnMap('${e.id}')">
+        <div class="ev-top">
+          <span class="ev-name">${e.junction}</span>
+          <span class="ev-badge ${badge}">${e.priority}</span>
+        </div>
+        <div class="ev-meta">${fmtCause(e.cause)} · ${e.corridor || '—'}</div>
+        ${e.closure === 'yes' ? '<div class="ev-closure">⚠ Road Closure Active</div>' : ''}
+        <div style="font-size:0.62rem;color:var(--primary);margin-top:0.3rem;line-height:1.4;">🔀 ${divText}</div>
+      </div>`;
+  }).join('');
+}
+
+function openEventOnMap(id) {
+  const marker = allMarkers.find(m => m._evData && m._evData.id === id);
+  if (marker) {
+    pubMap.flyTo(marker.getLatLng(), 15, { animate: true, duration: 0.6 });
+    setTimeout(() => marker.openPopup(), 700);
+  }
+}
+
+function showAllZones() {
+  document.getElementById('panel-all').style.display = 'flex';
+  document.getElementById('panel-zone').style.display = 'none';
+  document.querySelectorAll('.zone-btn').forEach(b => b.classList.remove('active'));
+  pubMap && pubMap.flyTo([12.9716, 77.5946], 12, { animate: true, duration: 0.8 });
+}
+
+// ── FILTER ────────────────────────────────────────────
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.ft').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderMap();
+}
+
+// ── INIT ──────────────────────────────────────────────
+renderMap();
+// Auto-refresh every 30s
+setInterval(renderMap, 30000);
+</script>
+
+<!-- IMPACT SCORE MODAL -->
+
+<!-- CITIZEN REPORTING MODAL -->
+<div id="report-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+  <div style="background:var(--card-bg); width:550px; max-width:95%; max-height:90vh; border-radius:12px; box-shadow:var(--shadow); border:1px solid var(--border); overflow-y:auto; animation:fadeIn 0.2s;">
+    <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(var(--amber),0.05); position:sticky; top:0; z-index:10;">
+      <div style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.1rem; color:var(--text); display:flex; align-items:center; gap:0.5rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
+        Submit a Traffic Report
+      </div>
+      <button onclick="closeReportModal()" style="color:var(--muted); font-size:1.5rem; line-height:1; padding:0 0.5rem;">&times;</button>
+    </div>
+    
+    <div style="padding:1.5rem;">
+      <form id="citizen-form" onsubmit="submitReport(event)">
+        <!-- Reporter Info -->
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+          <div style="flex:1;">
+            <label class="frm-lbl">Your Name</label>
+            <input type="text" id="cr-name" class="frm-inp" required placeholder="John Doe">
+          </div>
+          <div style="flex:1;">
+            <label class="frm-lbl">Email Address</label>
+            <input type="email" id="cr-email" class="frm-inp" required placeholder="john@example.com">
+          </div>
+        </div>
+        
+        <!-- Incident Type -->
+        <div style="margin-bottom:1rem;">
+          <label class="frm-lbl">Incident Type</label>
+          <select id="cr-type" class="frm-inp" required onchange="toggleOtherInput()">
+            <option value="">Select issue...</option>
+            <option value="accident">Accident</option>
+            <option value="water_logging">Water Logging / Flooding</option>
+            <option value="tree_fall">Tree Fall</option>
+            <option value="pot_holes">Severe Potholes</option>
+            <option value="vehicle_breakdown">Vehicle Breakdown</option>
+            <option value="other">Other Incident</option>
+          </select>
+        </div>
+        
+        <!-- Other Input -->
+        <div id="cr-other-group" style="display:none; margin-bottom:1rem;">
+          <label class="frm-lbl">Specify Incident Name</label>
+          <input type="text" id="cr-other" class="frm-inp" placeholder="e.g. Protest, Rally, Animal on Road">
+        </div>
+        
+        <!-- Location & Zone -->
+        <div style="display:flex; gap:1rem; margin-bottom:1rem;">
+          <div style="flex:2;">
+            <label class="frm-lbl">Location / Junction</label>
+            <div style="display:flex; gap:0.5rem;">
+              <input type="text" id="cr-loc" class="frm-inp" required placeholder="e.g. Silk Board Junction">
+              <button type="button" onclick="mockGPS()" style="background:var(--primary); color:white; padding:0 0.8rem; border-radius:6px; font-size:0.8rem; font-weight:600; white-space:nowrap; display:flex; align-items:center; gap:0.3rem;"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></svg>Use GPS</button>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="frm-lbl">Zone</label>
+            <select id="cr-zone" class="frm-inp" required>
+              <option value="">Select...</option>
+            </select>
+          </div>
+        </div>
+        
+        <!-- Description -->
+        <div style="margin-bottom:1rem;">
+          <label class="frm-lbl">Detailed Description</label>
+          <textarea id="cr-desc" class="frm-inp" required rows="3" placeholder="Describe the situation..."></textarea>
+        </div>
+        
+        <!-- Blocked & Photo -->
+        <div style="display:flex; gap:2rem; margin-bottom:1.5rem;">
+          <div>
+            <label class="frm-lbl">Is the road blocked?</label>
+            <div style="display:flex; gap:1rem; margin-top:0.4rem;">
+              <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; cursor:pointer;"><input type="radio" name="cr-blocked" value="yes" required> Yes</label>
+              <label style="display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; cursor:pointer;"><input type="radio" name="cr-blocked" value="no"> No</label>
+            </div>
+          </div>
+          <div style="flex:1;">
+            <label class="frm-lbl">Upload Photo (Optional)</label>
+            <input type="file" id="cr-photo" class="frm-inp" style="padding:0.4rem;" accept="image/*">
+          </div>
+        </div>
+        
+        <!-- Severity -->
+        <div style="margin-bottom:1.5rem;">
+          <label class="frm-lbl">Estimated Severity (Self-Rated)</label>
+          <div style="display:flex; gap:1rem; margin-top:0.4rem;">
+            <label class="sev-rad"><input type="radio" name="cr-sev" value="Minor" required> <span>🔵 Minor</span></label>
+            <label class="sev-rad"><input type="radio" name="cr-sev" value="Moderate"> <span>🟠 Moderate</span></label>
+            <label class="sev-rad"><input type="radio" name="cr-sev" value="Severe"> <span>🔴 Severe</span></label>
+          </div>
+        </div>
+        
+        <button type="submit" style="width:100%; padding:0.8rem; background:var(--amber); color:white; border-radius:6px; font-weight:600; font-size:0.95rem; transition:opacity 0.2s;">Submit Report to Police Control Room</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+  .frm-lbl { display:block; font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:0.4rem; letter-spacing:0.05em; }
+  .frm-inp { width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-family:inherit; font-size:0.9rem; transition:border-color 0.2s; }
+  .frm-inp:focus { outline:none; border-color:var(--primary); }
+  .sev-rad { display:flex; align-items:center; gap:0.3rem; font-size:0.85rem; cursor:pointer; }
+  .sev-rad span { padding:0.4rem 0.8rem; border:1px solid var(--border); border-radius:6px; background:var(--bg); transition:all 0.2s; }
+  .sev-rad input:checked + span { background:rgba(var(--pri-rgb),0.08); border-color:var(--primary); font-weight:600; }
+  .sev-rad input { display:none; }
+</style>
+
+<div id="impact-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:9999; align-items:center; justify-content:center; backdrop-filter:blur(4px);">
+  <div style="background:var(--card-bg); width:500px; max-width:90%; border-radius:12px; box-shadow:var(--shadow); border:1px solid var(--border); overflow:hidden; animation:fadeIn 0.2s;">
+    <div style="padding:1.2rem 1.5rem; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:rgba(var(--pri-rgb),0.03);">
+      <div style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.1rem; color:var(--text); display:flex; align-items:center; gap:0.5rem;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        Area Impact Score
+      </div>
+      <button onclick="closeImpactModal()" style="color:var(--muted); font-size:1.5rem; line-height:1; padding:0 0.5rem;">&times;</button>
+    </div>
+    
+    <div style="padding:1.5rem;">
+      <div style="display:flex; gap:1rem; margin-bottom:1.5rem;">
+        <div style="flex:2;">
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:0.4rem; letter-spacing:0.05em;">Select Junction (Location)</label>
+          <select id="impact-junc" onchange="toggleImpactOther()" style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-family:inherit; font-size:0.9rem;">
+            <option value="">Select a location...</option>
+          </select>
+          <!-- OTHER JUNCTION -->
+          <div id="impact-other-group" style="display:none; margin-top:0.8rem;">
+            <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:0.4rem; letter-spacing:0.05em;">Type Junction Name</label>
+            <input type="text" id="impact-other" style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-family:inherit; font-size:0.9rem;" placeholder="e.g. MG Road">
+          </div>
+        </div>
+        <div style="flex:1;">
+          <label style="display:block; font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase; margin-bottom:0.4rem; letter-spacing:0.05em;">Radius</label>
+          <select id="impact-rad" style="width:100%; padding:0.6rem; border:1px solid var(--border); border-radius:6px; background:var(--bg); color:var(--text); font-family:inherit; font-size:0.9rem;">
+            <option value="1">1 km</option>
+            <option value="2">2 km</option>
+            <option value="5">5 km</option>
+          </select>
+        </div>
+      </div>
+      
+      <button onclick="calculateImpact()" style="width:100%; padding:0.8rem; background:var(--primary); color:white; border-radius:6px; font-weight:600; font-size:0.95rem; margin-bottom:1.5rem; transition:opacity 0.2s;">Calculate Live Impact</button>
+      
+      <div id="impact-result" style="display:none; background:rgba(0,0,0,0.02); border:1px solid var(--border); border-radius:8px; padding:1.2rem;">
+        <!-- Result goes here -->
+      </div>
+    </div>
+  </div>
+</div>
+<style>
+  @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+</style>
+
+<script>
+
+
+// ── CITIZEN REPORTING LOGIC ─────────────────────────────
+function openReportModal() {
+  const sel = document.getElementById('cr-zone');
+  if (sel.options.length === 1) {
+    ZONES.forEach((z) => {
+      const opt = document.createElement('option');
+      opt.value = z.name;
+      opt.textContent = z.name;
+      sel.appendChild(opt);
+    });
+  }
+  document.getElementById('report-modal').style.display = 'flex';
+}
+
+function closeReportModal() {
+  document.getElementById('report-modal').style.display = 'none';
+  document.getElementById('citizen-form').reset();
+  toggleOtherInput();
+}
+
+function toggleOtherInput() {
+  const type = document.getElementById('cr-type').value;
+  document.getElementById('cr-other-group').style.display = type === 'other' ? 'block' : 'none';
+}
+
+function mockGPS() {
+  // Random junction from BLR_JUNCTIONS
+  const rand = BLR_JUNCTIONS[Math.floor(Math.random() * BLR_JUNCTIONS.length)];
+  document.getElementById('cr-loc').value = rand.name;
+  
+  // Try to find a zone that contains this name vaguely, or just pick random zone
+  const zsel = document.getElementById('cr-zone');
+  zsel.selectedIndex = Math.floor(Math.random() * (zsel.options.length - 1)) + 1;
+}
+
+function submitReport(e) {
+  e.preventDefault();
+  
+  const typeVal = document.getElementById('cr-type').value;
+  const cause = typeVal === 'other' ? document.getElementById('cr-other').value : typeVal;
+  
+  const rpt = {
+    id: 'CR-' + Math.random().toString(36).substr(2, 5).toUpperCase(),
+    reporter: document.getElementById('cr-name').value,
+    email: document.getElementById('cr-email').value,
+    cause: cause,
+    location: document.getElementById('cr-loc').value,
+    zone: document.getElementById('cr-zone').value,
+    desc: document.getElementById('cr-desc').value,
+    blocked: document.querySelector('input[name="cr-blocked"]:checked').value,
+    severity: document.querySelector('input[name="cr-sev"]:checked').value,
+    hasPhoto: document.getElementById('cr-photo').files.length > 0,
+    timestamp: new Date().toISOString(),
+    photoData: null
+  };
+  
+  const fileInput = document.getElementById('cr-photo');
+  if (fileInput.files.length > 0) {
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+      rpt.photoData = evt.target.result;
+      finishSubmit(rpt);
+    };
+    reader.readAsDataURL(fileInput.files[0]);
+  } else {
+    finishSubmit(rpt);
+  }
+}
+
+function finishSubmit(rpt) {
+  const existing = JSON.parse(localStorage.getItem('ts_citizen_reports') || '[]');
+  existing.push(rpt);
+  localStorage.setItem('ts_citizen_reports', JSON.stringify(existing));
+  
+  closeReportModal();
+  alert('Thank you! Your report has been submitted to the Police Control Room for verification. It will appear on the map once verified by officials.');
+}
+
+// ── IMPACT SCORE LOGIC ────────────────────────────────
+function toggleImpactOther() {
+  const sel = document.getElementById('impact-junc').value;
+  document.getElementById('impact-other-group').style.display = (sel === 'other') ? 'block' : 'none';
+}
+
+function openImpactModal() {
+  const sel = document.getElementById('impact-junc');
+  if (sel.options.length === 1) {
+    BLR_JUNCTIONS.forEach((j, i) => {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = j.name;
+      sel.appendChild(opt);
+    });
+    const optOther = document.createElement('option');
+    optOther.value = 'other';
+    optOther.textContent = 'Other (Specify)';
+    sel.appendChild(optOther);
+  }
+  const otherGroup = document.getElementById('impact-other-group');
+  if(otherGroup) otherGroup.style.display = 'none';
+  if(sel) sel.value = '';
+  document.getElementById('impact-modal').style.display = 'flex';
+  document.getElementById('impact-result').style.display = 'none';
+}
+
+function closeImpactModal() {
+  document.getElementById('impact-modal').style.display = 'none';
+}
+
+// Haversine formula
+function getDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371; // km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
+function calculateImpact() {
+  const jidx = document.getElementById('impact-junc').value;
+  const radius = parseFloat(document.getElementById('impact-rad').value);
+  
+  if (jidx === '') { alert('Please select a location'); return; }
+  
+  let origin;
+  if (jidx === 'other') {
+    const customLoc = document.getElementById('impact-other').value.trim();
+    if (!customLoc) { alert('Please type a location name'); return; }
+    origin = { name: customLoc, lat: 12.9716, lng: 77.5946 }; // center BLR approx
+  } else {
+    origin = BLR_JUNCTIONS[jidx];
+  }
+  const allEvents = loadEvents().filter(e => e.status === 'active');
+  
+  let score = 0;
+  let nearbyEvents = [];
+  let highCount = 0;
+  let closeCount = 0;
+  
+  allEvents.forEach(e => {
+    const coords = getCoords(e);
+    const dist = getDistance(origin.lat, origin.lng, coords.lat, coords.lng);
+    
+    if (dist <= radius) {
+      nearbyEvents.push(e);
+      let evScore = 15; // base
+      if (e.priority === 'High') { evScore += 20; highCount++; }
+      else if (e.priority === 'Medium') evScore += 10;
+      
+      if (e.closure === 'yes') { evScore += 30; closeCount++; }
+      
+      // Distance weighting (closer = more impact)
+      const weight = 1 - (dist / radius * 0.3); // max 30% reduction at edge
+      score += (evScore * weight);
+    }
+  });
+  
+  score = Math.min(Math.round(score), 100);
+  if (nearbyEvents.length === 0) score = 12; // Base ambient traffic score
+  else if (score < 20) score += 20; // Bump up if there are events
+  
+  let riskLabel, riskColor, actionText;
+  
+  if (score >= 70) {
+    riskLabel = 'High Risk';
+    riskColor = 'var(--red)';
+    actionText = `Is area se bachein — Alternate route use karein`;
+  } else if (score >= 40) {
+    riskLabel = 'Moderate Traffic';
+    riskColor = 'var(--amber)';
+    actionText = `Slow moving traffic expected — Extra time leke niklein`;
+  } else {
+    riskLabel = 'Normal Conditions';
+    riskColor = 'var(--green)';
+    actionText = `Traffic is flowing smoothly — Safe to travel`;
+  }
+  
+  const resDiv = document.getElementById('impact-result');
+  resDiv.style.display = 'block';
+  resDiv.innerHTML = `
+    <div style="display:flex; gap:1.5rem; align-items:center;">
+      <div style="display:flex; flex-direction:column; align-items:center;">
+        <span style="font-size:2.5rem; font-family:'Sora',sans-serif; font-weight:700; color:${riskColor}; line-height:1;">${score}</span>
+        <span style="font-family:'JetBrains Mono',monospace; font-size:0.7rem; color:var(--muted); margin-top:0.2rem;">/ 100</span>
+      </div>
+      <div style="flex:1;">
+        <div style="font-family:'Sora',sans-serif; font-weight:700; font-size:1.05rem; color:var(--text); margin-bottom:0.5rem;">
+          ${riskLabel} &mdash; ${origin.name} area
+        </div>
+        <div style="height:6px; background:rgba(0,0,0,0.08); border-radius:3px; overflow:hidden; margin-bottom:0.6rem;">
+          <div style="width:${score}%; height:100%; background:${riskColor}; border-radius:3px; transition:width 1s cubic-bezier(0.1, 0.7, 0.1, 1);"></div>
+        </div>
+        <div style="font-size:0.8rem; color:var(--muted); margin-bottom:0.4rem;">
+          ${nearbyEvents.length} active event${nearbyEvents.length!=1?'s':''} within ${radius}km &middot; ${highCount} high priority &middot; ${closeCount} road closure${closeCount!=1?'s':''}
+        </div>
+        <div style="font-size:0.85rem; font-weight:600; color:${riskColor};">
+          ${actionText}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+</script>
+</body>
+</html>

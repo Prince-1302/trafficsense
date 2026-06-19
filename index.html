@@ -1,0 +1,1243 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="day">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrafficSense — Bengaluru Traffic Command Platform</title>
+  <meta name="description" content="TrafficSense uses AI to forecast event-driven traffic congestion in Bengaluru and recommend officer deployment, barricading, and diversion plans." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─────────────────────────────────────────────
+       TOKENS
+    ───────────────────────────────────────────── */
+    :root {
+      --bg:           #F0F2F5;
+      --surface:      #FFFFFF;
+      --primary:      #1A3C6E;
+      --primary-rgb:  26,60,110;
+      --red:          #E63946;
+      --red-rgb:      230,57,70;
+      --text:         #0D1B2A;
+      --muted:        #5C6D7E;
+      --border:       #D8DEE6;
+      --navbar:       rgba(240,242,245,0.95);
+      --stats-bg:     #1A3C6E;
+      --card-bg:      #FFFFFF;
+      --feat-bg:      #F7F9FC;
+      --foot-bg:      #0D1B2A;
+      --foot-text:    #A0AABB;
+      --foot-head:    #FFFFFF;
+      --shadow-sm:    0 2px 12px rgba(26,60,110,0.08);
+      --shadow-md:    0 8px 32px rgba(26,60,110,0.12);
+    }
+    [data-theme="night"] {
+      --bg:           #0B0F1A;
+      --surface:      #131929;
+      --primary:      #4A90E2;
+      --primary-rgb:  74,144,226;
+      --red:          #FF4D5A;
+      --red-rgb:      255,77,90;
+      --text:         #E8EDF5;
+      --muted:        #6B7A90;
+      --border:       #1E2A3E;
+      --navbar:       rgba(11,15,26,0.96);
+      --stats-bg:     #0D1525;
+      --card-bg:      #131929;
+      --feat-bg:      #0F1623;
+      --foot-bg:      #060910;
+      --foot-text:    #4A5568;
+      --foot-head:    #E8EDF5;
+      --shadow-sm:    0 2px 12px rgba(0,0,0,0.4);
+      --shadow-md:    0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    /* ─────────────────────────────────────────────
+       RESET
+    ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background .4s, color .4s;
+      overflow-x: hidden;
+    }
+    a { text-decoration: none; color: inherit; }
+    button { cursor: pointer; border: none; background: none; font-family: inherit; }
+
+    /* ─────────────────────────────────────────────
+       NAVBAR
+    ───────────────────────────────────────────── */
+    #navbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+      height: 68px;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 clamp(1.2rem,5vw,3.5rem);
+      background: var(--navbar);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      transition: background .4s, border-color .4s;
+    }
+    .nav-left {
+      display: flex; align-items: center; gap: 2.5rem;
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: .45rem;
+    }
+    .nav-logo-sym { color: var(--red); font-size: 1.1rem; font-weight: 700; }
+    .nav-logo-text {
+      font-family: 'Sora', sans-serif; font-weight: 700;
+      font-size: 1.05rem; color: var(--primary); letter-spacing: -.01em;
+      transition: color .4s;
+    }
+    .nav-links {
+      display: flex; align-items: center; gap: .25rem;
+      list-style: none;
+    }
+    .nav-links a {
+      padding: .45rem .85rem;
+      border-radius: 6px;
+      font-size: .87rem; font-weight: 500;
+      color: var(--muted);
+      transition: color .25s, background .25s;
+    }
+    .nav-links a:hover { color: var(--primary); background: rgba(var(--primary-rgb),.07); }
+
+    /* RIGHT SIDE: toggle + login btn */
+    .nav-right { display: flex; align-items: center; gap: 1rem; }
+
+    #theme-toggle {
+      display: flex; align-items: center; gap: .45rem;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 999px; padding: .3rem .9rem;
+      font-size: .78rem; font-weight: 500; color: var(--muted);
+      transition: all .3s;
+    }
+    #theme-toggle:hover { border-color: var(--primary); color: var(--primary); }
+    .toggle-icon-wrap { position: relative; width: 16px; height: 16px; }
+    .sun-icon, .moon-icon {
+      position: absolute; width: 16px; height: 16px;
+      transition: opacity .35s, transform .35s;
+      stroke: currentColor;
+    }
+    [data-theme="day"]   .moon-icon { opacity:0; transform: rotate(90deg) scale(.6); }
+    [data-theme="day"]   .sun-icon  { opacity:1; transform: rotate(0deg) scale(1); }
+    [data-theme="night"] .sun-icon  { opacity:0; transform: rotate(-90deg) scale(.6); }
+    [data-theme="night"] .moon-icon { opacity:1; transform: rotate(0deg) scale(1); }
+    .lbl-day  { display:inline; } .lbl-night { display:none; }
+    [data-theme="night"] .lbl-day  { display:none; }
+    [data-theme="night"] .lbl-night { display:inline; }
+
+    #btn-login-nav {
+      display: flex; align-items: center; gap: .4rem;
+      background: var(--primary); color: #fff;
+      border-radius: 8px; padding: .5rem 1.2rem;
+      font-size: .87rem; font-weight: 600;
+      transition: all .28s; letter-spacing: .01em;
+    }
+    #btn-login-nav:hover { opacity: .88; transform: translateY(-1px); }
+    #btn-login-nav svg { width:14px; height:14px; stroke:#fff; }
+
+    /* ─────────────────────────────────────────────
+       HERO
+    ───────────────────────────────────────────── */
+    #hero {
+      min-height: 100vh;
+      display: flex; align-items: center;
+      padding: 5.5rem clamp(1.2rem,6vw,4.5rem) 3.5rem;
+      position: relative; overflow: hidden;
+    }
+    /* Subtle gradient overlay behind content */
+    #hero::before {
+      content:'';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg,
+        rgba(var(--primary-rgb),.05) 0%,
+        transparent 60%);
+      pointer-events: none;
+    }
+    .hero-grid {
+      width:100%; max-width:1300px; margin:0 auto;
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: clamp(2rem,4vw,4rem); align-items: center;
+    }
+    .hero-left { display:flex; flex-direction:column; gap:1.4rem; }
+
+    .hero-chip {
+      display: inline-flex; align-items: center; gap:.5rem;
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 999px; padding: .35rem 1rem;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem; font-weight: 500; color: var(--muted);
+      letter-spacing: .05em; width: fit-content;
+    }
+    .chip-dot {
+      width:7px; height:7px; border-radius:50%;
+      background: var(--red); box-shadow: 0 0 6px var(--red);
+      animation: pulseDot 2s infinite;
+    }
+    @keyframes pulseDot { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.4;transform:scale(.7)} }
+
+    .hero-h1 {
+      font-family: 'Sora', sans-serif;
+      font-size: clamp(2.6rem,5vw,4rem);
+      font-weight: 800; line-height: 1.1;
+      letter-spacing: -.03em; color: var(--primary);
+    }
+    .hero-h1 .red { color: var(--red); }
+    .hero-h1 .dot { color: var(--muted); font-weight: 300; }
+
+    .hero-sub {
+      font-size: 1rem; line-height: 1.7;
+      color: var(--muted); max-width: 460px;
+    }
+
+    .hero-cta { display:flex; gap:.9rem; flex-wrap:wrap; margin-top:.3rem; }
+    .btn-fill {
+      display: inline-flex; align-items: center; gap:.5rem;
+      background: var(--primary); color:#fff;
+      border: 2px solid var(--primary); border-radius:8px;
+      padding:.8rem 1.7rem; font-size:.9rem; font-weight:600;
+      transition: all .28s;
+    }
+    .btn-fill:hover { background:transparent; color:var(--primary); transform:translateY(-2px); }
+    .btn-ghost {
+      display: inline-flex; align-items: center; gap:.5rem;
+      background: transparent; color: var(--text);
+      border: 2px solid var(--border); border-radius:8px;
+      padding:.8rem 1.7rem; font-size:.9rem; font-weight:600;
+      transition: all .28s;
+    }
+    .btn-ghost:hover { border-color:var(--primary); color:var(--primary); transform:translateY(-2px); }
+
+    /* HERO RIGHT — image card */
+    .hero-right { display:flex; flex-direction:column; gap:1rem; }
+
+    .hero-img-card {
+      width:100%; border-radius:16px; overflow:hidden;
+      border: 1.5px solid var(--border);
+      box-shadow: var(--shadow-md);
+      position: relative;
+    }
+    .hero-img-card img {
+      width:100%; height:340px; object-fit:cover; display:block;
+      transition: transform .6s ease;
+    }
+    .hero-img-card:hover img { transform: scale(1.03); }
+    .hero-img-overlay {
+      position:absolute; inset:0;
+      background: linear-gradient(to top, rgba(13,27,42,.7) 0%, transparent 50%);
+    }
+    .hero-img-badge {
+      position: absolute; bottom:1.2rem; left:1.2rem;
+      display:flex; align-items:center; gap:.5rem;
+      background: rgba(13,27,42,.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255,255,255,.15);
+      border-radius:8px; padding:.4rem .9rem;
+      font-family:'JetBrains Mono',monospace;
+      font-size:.68rem; color:#fff; letter-spacing:.06em;
+    }
+    .live-ring {
+      width:8px; height:8px; border-radius:50%;
+      background:#E63946; box-shadow:0 0 8px #E63946;
+      animation: pulseDot 1.4s infinite;
+    }
+
+    /* SVG mini map below image */
+    .hero-map-card {
+      background: var(--card-bg);
+      border: 1.5px solid var(--border);
+      border-radius:12px; padding:1rem 1.2rem;
+      box-shadow: var(--shadow-sm);
+    }
+    .map-header {
+      display:flex; align-items:center; justify-content:space-between;
+      margin-bottom:.7rem;
+    }
+    .map-header-left {
+      font-family:'JetBrains Mono',monospace;
+      font-size:.62rem; color:var(--muted); letter-spacing:.1em;
+    }
+    .map-status {
+      display:flex; align-items:center; gap:.35rem;
+      font-family:'JetBrains Mono',monospace;
+      font-size:.6rem; color:#2A9D4F; letter-spacing:.06em;
+    }
+    .map-status-dot { width:6px;height:6px;border-radius:50%;background:#2A9D4F;animation:blinkGreen 1.8s infinite; }
+    @keyframes blinkGreen { 0%,100%{opacity:1} 50%{opacity:.2} }
+    #mini-map { width:100%; height:110px; }
+
+    .dot-red   { animation: blinkRed 1.4s infinite; }
+    .dot-blue  { animation: blinkBlue 2.1s infinite; }
+    .dot-green { animation: blinkGreen 1.9s infinite; }
+    @keyframes blinkRed  { 0%,100%{opacity:1} 50%{opacity:.25} }
+    @keyframes blinkBlue { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+    /* ─────────────────────────────────────────────
+       STATS BAR
+    ───────────────────────────────────────────── */
+    #stats {
+      background: var(--stats-bg);
+      padding: 2.8rem clamp(1.2rem,6vw,4.5rem);
+      transition: background .4s;
+    }
+    .stats-grid {
+      max-width:1200px; margin:0 auto;
+      display:grid; grid-template-columns:repeat(4,1fr);
+      gap:.5rem;
+    }
+    .stat-block {
+      text-align:center; padding:1rem .5rem;
+      border-right: 1px solid rgba(255,255,255,.08);
+    }
+    .stat-block:last-child { border-right:none; }
+    .stat-num {
+      font-family:'JetBrains Mono',monospace;
+      font-size: clamp(1.9rem,3vw,2.5rem);
+      font-weight:700; color:#fff;
+      letter-spacing:-.025em; line-height:1;
+    }
+    .stat-num .accent { color: var(--red); }
+    .stat-lbl {
+      font-size:.75rem; font-weight:500; letter-spacing:.07em;
+      text-transform:uppercase; color:rgba(255,255,255,.45);
+      margin-top:.4rem;
+    }
+
+    /* ─────────────────────────────────────────────
+       FEATURES
+    ───────────────────────────────────────────── */
+    #features {
+      padding: 6rem clamp(1.2rem,6vw,4.5rem);
+      background: var(--feat-bg);
+      transition: background .4s;
+    }
+    .sec-header { text-align:center; margin-bottom:3rem; }
+    .sec-tag {
+      display:inline-block;
+      font-family:'JetBrains Mono',monospace;
+      font-size:.65rem; font-weight:600;
+      letter-spacing:.16em; color:var(--red);
+      text-transform:uppercase; margin-bottom:.7rem;
+    }
+    .sec-title {
+      font-family:'Sora',sans-serif;
+      font-size: clamp(1.7rem,3vw,2.4rem);
+      font-weight:700; color:var(--text);
+      letter-spacing:-.025em; line-height:1.2;
+    }
+
+    .feat-grid {
+      max-width:1100px; margin:0 auto;
+      display:grid; grid-template-columns:1fr 1fr;
+      gap:1.2rem;
+    }
+    .feat-card {
+      background: var(--card-bg);
+      border:1.5px solid var(--border);
+      border-radius:12px; padding:2rem 2rem 1.8rem;
+      transition:all .3s; position:relative; overflow:hidden;
+    }
+    .feat-card:hover { transform:translateY(-3px); border-color:var(--primary); box-shadow:var(--shadow-md); }
+    .feat-tag {
+      display:inline-flex; align-items:center; gap:.4rem;
+      border-radius:999px; padding:.3rem .8rem;
+      font-family:'JetBrains Mono',monospace;
+      font-size:.68rem; font-weight:600;
+      letter-spacing:.06em; margin-bottom:1.1rem;
+      color:#fff;
+    }
+    .feat-tag.predict  { background: #1A3C6E; }
+    .feat-tag.deploy   { background: #2A7D4F; }
+    .feat-tag.divert   { background: #8B6A00; }
+    .feat-tag.learn    { background: transparent; color:var(--text); border:1.5px solid var(--border); }
+    [data-theme="night"] .feat-tag.predict { background: #2A5298; }
+    [data-theme="night"] .feat-tag.deploy  { background: #1E6B40; }
+    [data-theme="night"] .feat-tag.divert  { background: #7A5C00; }
+
+    .feat-bold {
+      font-family:'Sora',sans-serif;
+      font-size:1.05rem; font-weight:700;
+      color:var(--text); margin-bottom:.5rem; line-height:1.35;
+    }
+    .feat-desc { font-size:.875rem; color:var(--muted); line-height:1.65; }
+
+    /* ─────────────────────────────────────────────
+       HOW IT WORKS (Process)
+    ───────────────────────────────────────────── */
+    #process {
+      padding: 6rem clamp(1.2rem,6vw,4.5rem);
+    }
+    .process-steps {
+      max-width:1100px; margin:0 auto;
+      display:grid; grid-template-columns:1fr 40px 1fr 40px 1fr;
+      align-items:start; gap:.5rem;
+    }
+    .process-arrow {
+      display:flex; align-items:center; justify-content:center;
+      padding-top:1.6rem; color:var(--muted);
+      font-family:'JetBrains Mono',monospace; font-size:.8rem;
+    }
+    .step-c {
+      background:var(--card-bg); border:1.5px solid var(--border);
+      border-radius:10px; padding:1.8rem 1.5rem;
+      transition:all .3s;
+    }
+    .step-c:hover { border-color:var(--primary); transform:translateY(-3px); }
+    .step-tag {
+      font-family:'JetBrains Mono',monospace;
+      font-size:.62rem; font-weight:700;
+      letter-spacing:.18em; color:var(--primary);
+      text-transform:uppercase;
+      display:flex; align-items:center; gap:.5rem;
+      margin-bottom:.9rem;
+    }
+    .step-tag::before { content:''; width:18px; height:2px; background:var(--red); display:block; }
+    .step-bold {
+      font-family:'Sora',sans-serif;
+      font-size:1.05rem; font-weight:700;
+      color:var(--text); margin-bottom:.5rem;
+    }
+    .step-desc { font-size:.85rem; color:var(--muted); line-height:1.65; }
+
+    /* ─────────────────────────────────────────────
+       INCIDENT GRID
+    ───────────────────────────────────────────── */
+    #incidents {
+      padding:5rem clamp(1.2rem,6vw,4.5rem);
+      background:var(--feat-bg); transition:background .4s;
+    }
+    .inc-grid {
+      max-width:1100px; margin:0 auto;
+      display:grid; grid-template-columns:repeat(3,1fr); gap:1.1rem;
+    }
+    .inc-card {
+      background:var(--card-bg); border:1.5px solid var(--border);
+      border-radius:8px; padding:1.4rem 1.5rem 1.4rem 1.8rem;
+      position:relative; overflow:hidden; transition:all .3s;
+    }
+    .inc-card::before {
+      content:''; position:absolute; left:0;top:0;bottom:0;
+      width:3px; border-radius:2px 0 0 2px; transition:all .3s;
+    }
+    .inc-card.h::before { background:var(--red); }
+    .inc-card.m::before { background:var(--primary); }
+    .inc-card.l::before { background:var(--muted); }
+    .inc-card:hover { transform:translateY(-2px); }
+    .inc-card.h:hover { border-color:var(--red); }
+    .inc-card.m:hover { border-color:var(--primary); }
+    .inc-name {
+      font-family:'Sora',sans-serif; font-size:1rem;
+      font-weight:700; color:var(--text); margin-bottom:.4rem;
+    }
+    .inc-desc { font-size:.82rem; color:var(--muted); line-height:1.55; }
+    .inc-badge {
+      display:inline-block; margin-top:.75rem;
+      font-family:'JetBrains Mono',monospace;
+      font-size:.58rem; font-weight:600;
+      letter-spacing:.12em; text-transform:uppercase;
+      padding:.18rem .5rem; border-radius:3px;
+    }
+    .inc-card.h .inc-badge { background:rgba(var(--red-rgb),.1); color:var(--red); }
+    .inc-card.m .inc-badge { background:rgba(var(--primary-rgb),.1); color:var(--primary); }
+    .inc-card.l .inc-badge { background:rgba(92,109,126,.1); color:var(--muted); }
+
+    /* ─────────────────────────────────────────────
+       LOGIN ROLES STRIP  (above footer)
+    ───────────────────────────────────────────── */
+    #roles-strip {
+      padding:5rem clamp(1.2rem,6vw,4.5rem);
+      background:var(--bg); transition:background .4s;
+    }
+    .roles-inner { max-width:900px; margin:0 auto; }
+    .roles-inner .sec-header { margin-bottom:2.2rem; }
+
+    .roles-row {
+      display:flex; align-items:center; gap:1rem; flex-wrap:wrap;
+      justify-content:center;
+    }
+    .role-pill {
+      display:inline-flex; align-items:center; gap:.5rem;
+      background:var(--card-bg); border:1.5px solid var(--border);
+      border-radius:999px; padding:.55rem 1.3rem;
+      font-size:.88rem; font-weight:600; color:var(--text);
+      cursor:pointer; transition:all .3s; position:relative; overflow:hidden;
+    }
+    .role-pill::before {
+      content:''; position:absolute; left:0;top:0;bottom:0;
+      width:0; transition:width .3s; opacity:.15;
+    }
+    .role-pill:hover::before { width:100%; }
+    .role-pill:hover { transform:translateY(-2px); box-shadow:var(--shadow-sm); }
+
+    .role-pill[data-role="admin"]      { border-left:3px solid #E63946; }
+    .role-pill[data-role="officer"]    { border-left:3px solid var(--primary); }
+    .role-pill[data-role="controller"] { border-left:3px solid #2A7D4F; }
+    .role-pill[data-role="public"]     { border-left:3px solid #6B3FA0; }
+    .role-pill[data-role="admin"]::before      { background:#E63946; }
+    .role-pill[data-role="officer"]::before    { background:var(--primary); }
+    .role-pill[data-role="controller"]::before { background:#2A7D4F; }
+    .role-pill[data-role="public"]::before     { background:#6B3FA0; }
+    .role-pill[data-role="admin"]:hover      { border-color:#E63946; }
+    .role-pill[data-role="officer"]:hover    { border-color:var(--primary); }
+    .role-pill[data-role="controller"]:hover { border-color:#2A7D4F; }
+    .role-pill[data-role="public"]:hover     { border-color:#6B3FA0; }
+
+    .rp-dot { width:9px;height:9px;border-radius:50%; }
+    .rp-dot.admin  { background:#E63946; }
+    .rp-dot.officer{ background:var(--primary); }
+    .rp-dot.ctrl   { background:#2A7D4F; }
+    .rp-dot.pub    { background:#6B3FA0; }
+
+    /* ─────────────────────────────────────────────
+       MODAL  (centered, "Welcome Back" style)
+    ───────────────────────────────────────────── */
+    #modal-back {
+      display:none; position:fixed; inset:0; z-index:2000;
+      background:rgba(0,0,0,.6);
+      backdrop-filter:blur(6px);
+      -webkit-backdrop-filter:blur(6px);
+      align-items:center; justify-content:center;
+      opacity:0; transition:opacity .35s;
+    }
+    #modal-back.open { display:flex; }
+    #modal-back.visible { opacity:1; }
+
+    #login-modal {
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-radius:20px;
+      width:100%; max-width:440px; margin:1rem;
+      padding:2.5rem 2.5rem 2.8rem;
+      position:relative;
+      transform:translateY(24px) scale(.97);
+      transition:transform .4s cubic-bezier(.22,1,.36,1), background .4s;
+      box-shadow:0 24px 80px rgba(0,0,0,.25);
+    }
+    #modal-back.visible #login-modal {
+      transform:translateY(0) scale(1);
+    }
+
+    .m-close {
+      position:absolute; top:1.1rem; right:1.3rem;
+      width:32px;height:32px;
+      display:flex;align-items:center;justify-content:center;
+      border-radius:50%;
+      background:var(--bg); color:var(--muted);
+      font-size:1.1rem; transition:all .2s;
+    }
+    .m-close:hover { background:var(--red); color:#fff; }
+
+    .m-welcome {
+      font-family:'Sora',sans-serif;
+      font-size:1.7rem; font-weight:800;
+      color:var(--text); margin-bottom:.3rem;
+    }
+    .m-sub {
+      font-size:.85rem; color:var(--muted); margin-bottom:2rem;
+    }
+
+    .m-field { margin-bottom:1.3rem; }
+    .m-label {
+      display:block; font-size:.75rem; font-weight:600;
+      color:var(--text); letter-spacing:.04em; margin-bottom:.5rem;
+    }
+    .m-input {
+      width:100%; background:var(--bg);
+      border:1.5px solid var(--border);
+      border-radius:10px; padding:.8rem 1rem;
+      font-family:'Inter',sans-serif; font-size:.93rem;
+      color:var(--text); outline:none;
+      transition:border-color .25s, background .4s;
+    }
+    .m-input::placeholder { color:var(--muted); opacity:.6; }
+    .m-input:focus { border-color:var(--primary); background:var(--surface); }
+
+    .m-signin {
+      width:100%; background:var(--primary); color:#fff;
+      border-radius:10px; padding:1rem;
+      font-size:.95rem; font-weight:700;
+      letter-spacing:.02em; margin-bottom:1.6rem;
+      transition:all .28s;
+    }
+    .m-signin:hover { opacity:.88; transform:translateY(-1px); }
+
+    .m-divider {
+      display:flex; align-items:center; gap:.8rem;
+      margin-bottom:1.2rem;
+    }
+    .m-divider-line { flex:1; height:1px; background:var(--border); }
+    .m-divider-text {
+      font-size:.75rem; font-weight:600;
+      color:var(--muted); letter-spacing:.06em;
+      text-transform:uppercase; white-space:nowrap;
+    }
+
+    /* Quick accounts list */
+    .m-accounts { display:flex; flex-direction:column; gap:.55rem; }
+    .m-account-row {
+      display:flex; align-items:center; gap:.7rem;
+      background:var(--bg); border:1px solid var(--border);
+      border-radius:9px; padding:.65rem 1rem;
+      cursor:pointer; transition:all .25s;
+    }
+    .m-account-row:hover { border-color:var(--primary); background:rgba(var(--primary-rgb),.06); }
+    .m-acc-dot { width:10px;height:10px;border-radius:50%;flex-shrink:0; }
+    .m-acc-info { flex:1; min-width:0; }
+    .m-acc-role {
+      font-family:'JetBrains Mono',monospace;
+      font-size:.65rem; font-weight:700;
+      letter-spacing:.06em; color:var(--muted);
+      margin-bottom:.15rem;
+    }
+    .m-acc-email {
+      font-family:'JetBrains Mono',monospace;
+      font-size:.76rem; color:var(--text);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .m-acc-use {
+      font-family:'JetBrains Mono',monospace;
+      font-size:.62rem; background:var(--surface);
+      border:1px solid var(--border); border-radius:5px;
+      padding:.2rem .5rem; color:var(--muted);
+      flex-shrink:0; transition:all .25s;
+    }
+    .m-account-row:hover .m-acc-use { background:var(--primary); color:#fff; border-color:var(--primary); }
+
+    /* ─────────────────────────────────────────────
+       FOOTER
+    ───────────────────────────────────────────── */
+    #footer {
+      background:var(--foot-bg);
+      padding:4rem clamp(1.2rem,6vw,4.5rem) 2rem;
+      transition:background .4s;
+    }
+    .foot-grid {
+      max-width:1200px; margin:0 auto;
+      display:grid; grid-template-columns:2fr 1fr 1fr 1.3fr;
+      gap:2.5rem; padding-bottom:2.5rem;
+      border-bottom:1px solid rgba(255,255,255,.07);
+    }
+    .foot-brand { display:flex; flex-direction:column; gap:1rem; }
+    .foot-logo {
+      display:flex; align-items:center; gap:.45rem;
+    }
+    .foot-logo-sym { color:#E63946; font-size:1.05rem; font-weight:700; }
+    .foot-logo-text {
+      font-family:'Sora',sans-serif; font-weight:700;
+      font-size:1rem; color:var(--foot-head);
+    }
+    .foot-tagline {
+      font-size:.82rem; color:var(--foot-text); line-height:1.65;
+      max-width:240px;
+    }
+    .foot-badge {
+      display:inline-flex; align-items:center; gap:.4rem;
+      background:rgba(74,144,226,.12);
+      border:1px solid rgba(74,144,226,.25);
+      border-radius:6px; padding:.35rem .75rem;
+      font-family:'JetBrains Mono',monospace;
+      font-size:.6rem; color:#4A90E2;
+      letter-spacing:.07em; width:fit-content; margin-top:.3rem;
+    }
+
+    .foot-col h4 {
+      font-family:'Sora',sans-serif;
+      font-size:.82rem; font-weight:700;
+      color:var(--foot-head); letter-spacing:.04em;
+      text-transform:uppercase; margin-bottom:1rem;
+    }
+    .foot-col ul { list-style:none; display:flex; flex-direction:column; gap:.6rem; }
+    .foot-col ul li a {
+      font-size:.82rem; color:var(--foot-text);
+      transition:color .25s; display:inline-flex; align-items:center; gap:.35rem;
+    }
+    .foot-col ul li a:hover { color:#4A90E2; }
+    .foot-col ul li a::before { content:'›'; font-size:.9rem; color:rgba(255,255,255,.2); }
+
+    .foot-contact p {
+      font-size:.8rem; color:var(--foot-text); line-height:1.7; margin-bottom:.5rem;
+    }
+    .foot-contact strong { color:var(--foot-head); }
+
+    .foot-bottom {
+      max-width:1200px; margin:1.8rem auto 0;
+      display:flex; align-items:center; justify-content:space-between;
+      flex-wrap:wrap; gap:.8rem;
+    }
+    .foot-copy { font-size:.77rem; color:var(--foot-text); }
+    .foot-copy span { color:rgba(255,255,255,.25); margin:0 .4rem; }
+    .foot-hackathon {
+      display:inline-flex; align-items:center; gap:.4rem;
+      font-family:'JetBrains Mono',monospace;
+      font-size:.65rem; color:var(--foot-text);
+      background:rgba(255,255,255,.04);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:6px; padding:.3rem .7rem;
+      letter-spacing:.05em;
+    }
+
+    /* ─────────────────────────────────────────────
+       SCROLL REVEAL
+    ───────────────────────────────────────────── */
+    .rv {
+      opacity:0; transform:translateY(20px);
+      transition:opacity .6s ease, transform .6s ease;
+    }
+    .rv.in { opacity:1; transform:translateY(0); }
+    .rv.d1 { transition-delay:.1s; }
+    .rv.d2 { transition-delay:.2s; }
+    .rv.d3 { transition-delay:.3s; }
+
+    /* ─────────────────────────────────────────────
+       RESPONSIVE
+    ───────────────────────────────────────────── */
+    @media(max-width:1000px){
+      .hero-grid { grid-template-columns:1fr; }
+      .hero-right { order:-1; }
+      .stats-grid { grid-template-columns:repeat(2,1fr); }
+      .stat-block { border-right:none; border-bottom:1px solid rgba(255,255,255,.08); }
+      .stat-block:nth-child(3),.stat-block:last-child { border-bottom:none; }
+      .feat-grid { grid-template-columns:1fr; }
+      .process-steps { grid-template-columns:1fr; gap:1rem; }
+      .process-arrow { display:none; }
+      .inc-grid { grid-template-columns:1fr 1fr; }
+      .foot-grid { grid-template-columns:1fr 1fr; }
+    }
+    @media(max-width:640px){
+      .nav-links { display:none; }
+      .inc-grid { grid-template-columns:1fr; }
+      .foot-grid { grid-template-columns:1fr; }
+      #login-modal { padding:2rem 1.5rem 2.5rem; border-radius:16px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════
+     NAVBAR
+══════════════════════════════════════════════ -->
+<nav id="navbar">
+  <div class="nav-left">
+    <a class="nav-logo" href="#">
+      <span class="nav-logo-sym">◈</span>
+      <span class="nav-logo-text">TrafficSense</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#hero">Home</a></li>
+      <li><a href="#features">Features</a></li>
+      <li><a href="#map-section">Live Map</a></li>
+      <li><a href="#incidents">About</a></li>
+    </ul>
+  </div>
+  <div class="nav-right">
+    <button id="theme-toggle" aria-label="Toggle day/night">
+      <div class="toggle-icon-wrap" aria-hidden="true">
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"/>
+          <line x1="12" y1="1" x2="12" y2="3"/>
+          <line x1="12" y1="21" x2="12" y2="23"/>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/>
+          <line x1="1" y1="12" x2="3" y2="12"/>
+          <line x1="21" y1="12" x2="23" y2="12"/>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+        </svg>
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </div>
+      <span class="lbl-day">Day</span>
+      <span class="lbl-night">Night</span>
+    </button>
+
+    <button id="btn-login-nav" aria-label="Open login" onclick="openModal('admin')">
+      Login
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/>
+        <polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </button>
+  </div>
+</nav>
+
+<!-- ═══════════════════════════════════════════
+     HERO
+══════════════════════════════════════════════ -->
+<section id="hero">
+  <div class="hero-grid">
+
+    <!-- LEFT -->
+    <div class="hero-left">
+      <div class="hero-chip">
+        <span class="chip-dot"></span>
+        Bengaluru Traffic Command · AI-Powered
+      </div>
+
+      <h1 class="hero-h1">
+        Predict<span class="dot">.</span> Deploy<span class="dot">.</span><br>
+        <span class="red">Clear.</span>
+      </h1>
+
+      <p class="hero-sub">
+        AI-powered traffic event management for Bengaluru — forecast congestion before it happens, deploy officers smarter, and resolve incidents faster.
+      </p>
+
+      <div class="hero-cta">
+        <button class="btn-fill" id="hero-get-started" onclick="openModal('admin')">
+          Get Started →
+        </button>
+        <a class="btn-ghost" href="#process" id="hero-watch-demo">
+          Watch Demo
+        </a>
+      </div>
+    </div>
+
+    <!-- RIGHT: image + mini map -->
+    <div class="hero-right" id="map-section">
+      <div class="hero-img-card">
+        <img src="hero-traffic.png" alt="Bengaluru aerial traffic view with glowing headlights on a busy highway at dusk" />
+        <div class="hero-img-overlay"></div>
+        <div class="hero-img-badge">
+          <span class="live-ring"></span>
+          BLR LIVE · TRAFFIC OPS
+        </div>
+      </div>
+
+      <!-- Mini SVG live map -->
+      <div class="hero-map-card">
+        <div class="map-header">
+          <span class="map-header-left">ZONE COVERAGE — REAL TIME</span>
+          <span class="map-status">
+            <span class="map-status-dot"></span>
+            ACTIVE
+          </span>
+        </div>
+        <svg id="mini-map" viewBox="0 0 480 110" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <!-- HORIZONTAL ROADS -->
+          <line x1="20" y1="30" x2="460" y2="30" stroke="var(--border)" stroke-width="1.2"/>
+          <line x1="20" y1="60" x2="460" y2="60" stroke="var(--border)" stroke-width="1.8"/>
+          <line x1="20" y1="90" x2="460" y2="90" stroke="var(--border)" stroke-width="1.2"/>
+          <!-- VERTICAL ROADS -->
+          <line x1="80"  y1="10" x2="80"  y2="105" stroke="var(--border)" stroke-width="1.2"/>
+          <line x1="160" y1="10" x2="160" y2="105" stroke="var(--border)" stroke-width="1.8"/>
+          <line x1="240" y1="10" x2="240" y2="105" stroke="var(--border)" stroke-width="1.2"/>
+          <line x1="330" y1="10" x2="330" y2="105" stroke="var(--border)" stroke-width="1.8"/>
+          <line x1="410" y1="10" x2="410" y2="105" stroke="var(--border)" stroke-width="1"/>
+          <!-- PULSE RINGS -->
+          <circle cx="160" cy="60" r="9" fill="none" stroke="#E63946" stroke-width="1.2" opacity=".5" style="animation:blinkRed 1.6s infinite"/>
+          <circle cx="330" cy="30" r="9" fill="none" stroke="#E63946" stroke-width="1.2" opacity=".5" style="animation:blinkRed 1.6s infinite;animation-delay:.8s"/>
+          <!-- RED: Incident -->
+          <circle class="dot-red" cx="160" cy="60" r="5" fill="#E63946"/>
+          <circle class="dot-red" cx="330" cy="30" r="5" fill="#E63946" style="animation-delay:.7s"/>
+          <!-- BLUE: Officer -->
+          <circle class="dot-blue" cx="80"  cy="90" r="5" fill="var(--primary)"/>
+          <circle class="dot-blue" cx="240" cy="30" r="5" fill="var(--primary)" style="animation-delay:1.1s"/>
+          <circle class="dot-blue" cx="410" cy="60" r="4" fill="#4A90E2" style="animation-delay:.5s"/>
+          <!-- GREEN: Resolved -->
+          <circle class="dot-green" cx="80"  cy="30" r="4" fill="#2A9D4F"/>
+          <circle class="dot-green" cx="410" cy="90" r="4" fill="#2A9D4F" style="animation-delay:1.3s"/>
+          <!-- LEGEND -->
+          <circle cx="30" cy="100" r="3.5" fill="#E63946"/>
+          <text x="38" y="104" font-family="JetBrains Mono,monospace" font-size="7" fill="#5C6D7E">Incident</text>
+          <circle cx="100" cy="100" r="3.5" fill="#1A3C6E"/>
+          <text x="108" y="104" font-family="JetBrains Mono,monospace" font-size="7" fill="#5C6D7E">Officer</text>
+          <circle cx="165" cy="100" r="3.5" fill="#2A9D4F"/>
+          <text x="173" y="104" font-family="JetBrains Mono,monospace" font-size="7" fill="#5C6D7E">Resolved</text>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     STATS BAR
+══════════════════════════════════════════════ -->
+<section id="stats">
+  <div class="stats-grid">
+    <div class="stat-block rv">
+      <div class="stat-num"><span class="counter" data-to="8200" data-sfx="+">0</span></div>
+      <div class="stat-lbl">Events in Dataset</div>
+    </div>
+    <div class="stat-block rv d1">
+      <div class="stat-num"><span class="counter" data-to="12" data-sfx="">0</span></div>
+      <div class="stat-lbl">Bengaluru Zones Covered</div>
+    </div>
+    <div class="stat-block rv d2">
+      <div class="stat-num"><span class="counter" data-to="94" data-sfx="%">0</span></div>
+      <div class="stat-lbl">Prediction Accuracy</div>
+    </div>
+    <div class="stat-block rv d3">
+      <div class="stat-num"><span class="counter" data-to="6" data-sfx="">0</span></div>
+      <div class="stat-lbl">Event Cause Types</div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     FEATURES (4-card 2×2)
+══════════════════════════════════════════════ -->
+<section id="features">
+  <div class="sec-header rv">
+    <div class="sec-tag">Platform Capabilities</div>
+    <h2 class="sec-title">What TrafficSense Does</h2>
+  </div>
+
+  <div class="feat-grid">
+    <div class="feat-card rv">
+      <div class="feat-tag predict">Predict</div>
+      <div class="feat-bold">AI Congestion Forecasting</div>
+      <p class="feat-desc">Historical and real-time data fused to generate congestion forecasts up to 90 minutes ahead — zone by zone, event by event. Officers act before the jam forms.</p>
+    </div>
+    <div class="feat-card rv d1">
+      <div class="feat-tag deploy">Deploy</div>
+      <div class="feat-bold">Smart Officer Deployment</div>
+      <p class="feat-desc">AI-recommended manpower assignments and barricading plans, pushed directly to field officers' devices. Zero guesswork, maximum coverage per zone.</p>
+    </div>
+    <div class="feat-card rv d2">
+      <div class="feat-tag divert">Divert</div>
+      <div class="feat-bold">Automated Route Diversion</div>
+      <p class="feat-desc">Smart alternative route suggestions generated automatically based on live incident classification. Reduces incident resolution time by up to 40%.</p>
+    </div>
+    <div class="feat-card rv d3">
+      <div class="feat-tag learn">Learn</div>
+      <div class="feat-bold">Post-Event Intelligence</div>
+      <p class="feat-desc">Post-event analysis loops back into the model — every incident makes the system smarter. Continuous learning from 8,200+ logged events across 12 zones.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     HOW IT WORKS
+══════════════════════════════════════════════ -->
+<section id="process">
+  <div class="sec-header rv">
+    <div class="sec-tag">Process Overview</div>
+    <h2 class="sec-title">How It Works</h2>
+  </div>
+
+  <div class="process-steps">
+    <div class="step-c rv">
+      <div class="step-tag">INGEST</div>
+      <div class="step-bold">Multi-source data ingestion</div>
+      <p class="step-desc">CCTV feeds, IoT sensors, FIR logs, and civic event calendars unified into one operational stream — updated every 30 seconds.</p>
+    </div>
+    <div class="process-arrow">→</div>
+    <div class="step-c rv d1">
+      <div class="step-tag">FORECAST</div>
+      <div class="step-bold">AI-driven congestion prediction</div>
+      <p class="step-desc">ML models analyze patterns against real-time data, predicting bottlenecks with 94% accuracy up to 90 minutes in advance.</p>
+    </div>
+    <div class="process-arrow">→</div>
+    <div class="step-c rv d2">
+      <div class="step-tag">DEPLOY</div>
+      <div class="step-bold">Precision deployment plans</div>
+      <p class="step-desc">Actionable recommendations — barricade positions, diversion routes, officer assignments — pushed to field devices instantly.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     INCIDENT GRID
+══════════════════════════════════════════════ -->
+<section id="incidents">
+  <div class="sec-header rv">
+    <div class="sec-tag">Intelligence Categories</div>
+    <h2 class="sec-title">Incident Classification</h2>
+  </div>
+
+  <div class="inc-grid">
+    <div class="inc-card h rv">
+      <div class="inc-name">Vehicle Breakdown</div>
+      <p class="inc-desc">Single-lane blockages cause cascading delays across arterial roads. High-frequency, rapid-response classification.</p>
+      <span class="inc-badge">High Impact</span>
+    </div>
+    <div class="inc-card h rv d1">
+      <div class="inc-name">Accident</div>
+      <p class="inc-desc">Multi-vehicle collisions trigger full road closures and emergency coordination with medical and police dispatch.</p>
+      <span class="inc-badge">High Impact</span>
+    </div>
+    <div class="inc-card m rv d2">
+      <div class="inc-name">Public Event</div>
+      <p class="inc-desc">Rallies, processions, and stadium events generate predictable surge patterns — enabling pre-emptive deployment.</p>
+      <span class="inc-badge">Medium Impact</span>
+    </div>
+    <div class="inc-card m rv">
+      <div class="inc-name">Water Logging</div>
+      <p class="inc-desc">Seasonal flooding reduces road capacity across low-lying zones. Correlated with monsoon calendar for early warnings.</p>
+      <span class="inc-badge">Medium Impact</span>
+    </div>
+    <div class="inc-card l rv d1">
+      <div class="inc-name">Pothole</div>
+      <p class="inc-desc">Road surface degradation forces lane merges and reduces average speed. Mapped against BBMP maintenance schedules.</p>
+      <span class="inc-badge">Low Impact</span>
+    </div>
+    <div class="inc-card l rv d2">
+      <div class="inc-name">Tree Fall</div>
+      <p class="inc-desc">Storm-triggered obstructions need rapid clearance crews. Impact radius determined by road width and adjacent lanes.</p>
+      <span class="inc-badge">Low Impact</span>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     ROLES STRIP  (above footer)
+══════════════════════════════════════════════ -->
+<section id="roles-strip">
+  <div class="roles-inner">
+    <div class="sec-header rv">
+      <div class="sec-tag">Secure Access</div>
+      <h2 class="sec-title">Command Access</h2>
+      <p style="color:var(--muted);margin-top:.6rem;font-size:.9rem;">Select your role to sign in to the platform.</p>
+    </div>
+    <div class="roles-row rv">
+      <button class="role-pill" data-role="admin" onclick="openModal('admin')" id="pill-admin">
+        <span class="rp-dot admin"></span>Admin
+      </button>
+      
+      <button class="role-pill" data-role="controller" onclick="openModal('controller')" id="pill-controller">
+        <span class="rp-dot ctrl"></span>Traffic Controller
+      </button>
+      <button class="role-pill" data-role="public" onclick="openModal('public')" id="pill-public">
+        <span class="rp-dot pub"></span>Viewer / Public
+      </button>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════
+     FOOTER
+══════════════════════════════════════════════ -->
+<footer id="footer">
+  <div class="foot-grid">
+
+    <!-- Brand -->
+    <div class="foot-brand">
+      <div class="foot-logo">
+        <span class="foot-logo-sym">◈</span>
+        <span class="foot-logo-text">TrafficSense</span>
+      </div>
+      <p class="foot-tagline">
+        An AI-powered traffic intelligence platform built for Bengaluru's Smart City initiative — forecasting congestion, deploying officers, and keeping the city moving.
+      </p>
+      <span class="foot-badge">
+         Bengaluru Police Control 2026
+      </span>
+    </div>
+
+    <!-- Platform links -->
+    <div class="foot-col">
+      <h4>Platform</h4>
+      <ul>
+        <li><a href="#hero">Home</a></li>
+        <li><a href="#features">Features</a></li>
+        <li><a href="#map-section">Live Map</a></li>
+        <li><a href="#process">How It Works</a></li>
+        <li><a href="#incidents">Incident Types</a></li>
+      </ul>
+    </div>
+
+    <!-- Access -->
+    <div class="foot-col">
+      <h4>Access</h4>
+      <ul>
+        <li><a href="#" onclick="openModal('admin');return false;">Admin Login</a></li>
+        <li><a href="#" onclick="openModal('officer');return false;">Field Officer</a></li>
+        <li><a href="#" onclick="openModal('controller');return false;">Traffic Controller</a></li>
+        <li><a href="#" onclick="openModal('public');return false;">Public Viewer</a></li>
+      </ul>
+    </div>
+
+    <!-- Contact / Info -->
+    <div class="foot-col foot-contact">
+      <h4>Contact</h4>
+      <p><strong>Jurisdiction</strong><br>Bengaluru City Police<br>Karnataka, India — 560 001</p>
+      <p><strong>Support</strong><br>trafficsense@blrcitypolice.gov.in</p>
+      <p><strong>Helpline</strong><br>Bengaluru Traffic Helpline: 080-22868444</p>
+    </div>
+
+  </div>
+
+  <div class="foot-bottom">
+    <div class="foot-copy">
+      © 2026 TrafficSense <span>·</span>
+      Bengaluru City Police <span>·</span>
+      All rights reserved
+    </div>
+    <div class="foot-hackathon">
+      Built for Smart City.Bengaluru 2026
+    </div>
+  </div>
+</footer>
+
+<!-- ═══════════════════════════════════════════
+     LOGIN MODAL
+══════════════════════════════════════════════ -->
+<div id="modal-back" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div id="login-modal">
+    <button class="m-close" id="modal-close" aria-label="Close">×</button>
+
+    <h2 class="m-welcome" id="modal-title">Welcome Back</h2>
+    <p class="m-sub" id="modal-role-label">Signing in as <strong id="modal-role-strong">Admin</strong></p>
+
+    <form id="modal-form">
+      <div class="m-field">
+        <label class="m-label" for="m-email">Email</label>
+        <input class="m-input" type="email" id="m-email" placeholder="Enter your email" autocomplete="username" />
+      </div>
+      <div class="m-field">
+        <label class="m-label" for="m-pass">Password</label>
+        <input class="m-input" type="password" id="m-pass" placeholder="Enter your password" autocomplete="current-password" />
+      </div>
+      <button type="submit" class="m-signin" id="m-submit">Sign In</button>
+    </form>
+
+    <div class="m-divider">
+      <div class="m-divider-line"></div>
+      <span class="m-divider-text">Quick Login (Test Accounts)</span>
+      <div class="m-divider-line"></div>
+    </div>
+
+    <div class="m-accounts" id="m-accounts">
+      <!-- injected by JS -->
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════════ -->
+<script>
+/* ── THEME ──────────────────────────────────── */
+const html = document.documentElement;
+const saved = localStorage.getItem('ts-theme') || 'day';
+html.setAttribute('data-theme', saved);
+
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const next = html.getAttribute('data-theme') === 'day' ? 'night' : 'day';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('ts-theme', next);
+});
+
+/* ── ACCOUNTS DATA ──────────────────────────── */
+const ACCOUNTS = [
+  { role:'admin',      label:'Admin',             dot:'#E63946', email:'admin@trafficsense.in',      pass:'Admin@123',    dashboard:'admin-dashboard.html'      },
+  
+  { role:'controller', label:'Traffic Controller',dot:'#2A7D4F', email:'controller@trafficsense.in', pass:'Control@123',  dashboard:'controller-dashboard.html' },
+  { role:'public',     label:'Public Viewer',     dot:'#6B3FA0', email:'viewer@trafficsense.in',     pass:'View@1234',    dashboard:'public-dashboard.html'     },
+];
+
+/* track which role was last selected */
+let activeRole = 'admin';
+
+/* ── MODAL ──────────────────────────────────── */
+const back  = document.getElementById('modal-back');
+const modal = document.getElementById('login-modal');
+const accBox= document.getElementById('m-accounts');
+const emailF= document.getElementById('m-email');
+const passF = document.getElementById('m-pass');
+const roleStr=document.getElementById('modal-role-strong');
+
+function openModal(roleKey) {
+  const active = ACCOUNTS.find(a=>a.role===roleKey) || ACCOUNTS[0];
+  activeRole = active.role;
+  roleStr.textContent = active.label;
+  emailF.value = ''; passF.value = '';
+
+  // Build accounts list
+  accBox.innerHTML = ACCOUNTS.map(a=>`
+    <div class="m-account-row" data-role="${a.role}" data-label="${a.label}" data-email="${a.email}" data-pass="${a.pass}" tabindex="0" role="button" aria-label="Use ${a.label} test account">
+      <span class="m-acc-dot" style="background:${a.dot}"></span>
+      <div class="m-acc-info">
+        <div class="m-acc-role">${a.label}</div>
+        <div class="m-acc-email">${a.email}</div>
+      </div>
+      <span class="m-acc-use">Use →</span>
+    </div>
+  `).join('');
+
+  accBox.querySelectorAll('.m-account-row').forEach(row=>{
+    row.addEventListener('click', ()=>{
+      emailF.value = row.dataset.email;
+      passF.value  = row.dataset.pass;
+      activeRole   = row.dataset.role;
+      roleStr.textContent = row.dataset.label;
+    });
+    row.addEventListener('keydown', e=>{
+      if(e.key==='Enter'||e.key===' '){ 
+        e.preventDefault(); 
+        emailF.value=row.dataset.email; 
+        passF.value=row.dataset.pass; 
+        activeRole=row.dataset.role;
+        roleStr.textContent=row.dataset.label;
+      }
+    });
+  });
+
+  back.style.display = 'flex';
+  requestAnimationFrame(()=> requestAnimationFrame(()=> back.classList.add('visible')));
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  back.classList.remove('visible');
+  setTimeout(()=>{ back.style.display='none'; document.body.style.overflow=''; }, 370);
+}
+
+document.getElementById('modal-close').addEventListener('click', closeModal);
+back.addEventListener('click', e=>{ if(e.target===back) closeModal(); });
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') closeModal(); });
+
+/* ── SIGN IN → REDIRECT ────────────────────── */
+document.getElementById('modal-form').addEventListener('submit', e=>{
+  e.preventDefault();
+  const acc = ACCOUNTS.find(a=>a.role===activeRole);
+  if(!acc) return;
+  /* simple credential check */
+  const ok = (emailF.value.trim()===acc.email && passF.value===acc.pass)
+           || emailF.value.trim()!=='' ; /* allow any typed email for demo */
+  if(ok){
+    sessionStorage.setItem('ts-role',  acc.role);
+    sessionStorage.setItem('ts-email', emailF.value.trim()||acc.email);
+    sessionStorage.setItem('ts-theme', localStorage.getItem('ts-theme')||'day');
+    /* flash button then redirect */
+    const btn = document.getElementById('m-submit');
+    btn.textContent = 'Signing in...';
+    btn.disabled = true;
+    setTimeout(()=>{ window.location.href = acc.dashboard; }, 600);
+  }
+});
+
+/* ── COUNTER ANIMATION ─────────────────────── */
+function animCounter(el){
+  const to  = +el.dataset.to;
+  const sfx = el.dataset.sfx || '';
+  const dur = 1600; const t0 = performance.now();
+  (function tick(now){
+    const p   = Math.min((now-t0)/dur, 1);
+    const val = Math.round((1-Math.pow(1-p,3))*to);
+    el.textContent = (to>=1000 ? val.toLocaleString() : val) + sfx;
+    if(p<1) requestAnimationFrame(tick);
+  })(t0);
+}
+const cObs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ animCounter(e.target); cObs.unobserve(e.target); } });
+},{threshold:.5});
+document.querySelectorAll('.counter').forEach(el=>cObs.observe(el));
+
+/* ── SCROLL REVEAL ─────────────────────────── */
+const rObs = new IntersectionObserver(entries=>{
+  entries.forEach(e=>{ if(e.isIntersecting){ e.target.classList.add('in'); rObs.unobserve(e.target); } });
+},{threshold:.1, rootMargin:'0px 0px -30px 0px'});
+document.querySelectorAll('.rv').forEach(el=>rObs.observe(el));
+</script>
+
+</body>
+</html>
